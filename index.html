@@ -207,6 +207,7 @@
             background: rgba(50, 50, 50, 0.6);
             border-left: 4px solid #444;
             transition: all 0.2s ease;
+            position: relative;
         }
         
         .message:hover {
@@ -240,6 +241,11 @@
         .advertisement-message {
             background: rgba(70, 30, 30, 0.6);
             border-left: 4px solid #c0392b;
+        }
+        
+        .private-message {
+            background: rgba(30, 60, 50, 0.6);
+            border-left: 4px solid #27ae60;
         }
         
         .chat-container {
@@ -376,6 +382,24 @@
             width: auto;
             padding: 8px 15px;
             font-size: 0.8em;
+        }
+        
+        .message-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: none;
+            gap: 5px;
+        }
+        
+        .message:hover .message-controls {
+            display: flex;
+        }
+        
+        .message-controls button {
+            padding: 4px 8px;
+            font-size: 0.7rem;
+            width: auto;
         }
         
         .tabs {
@@ -542,6 +566,65 @@
         .encryption-icon {
             color: #2ecc71;
         }
+        
+        /* Стикеры */
+        .sticker-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .sticker {
+            font-size: 2rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+            padding: 5px;
+            border-radius: 5px;
+        }
+        
+        .sticker:hover {
+            transform: scale(1.2);
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .sticker-message {
+            font-size: 3rem;
+            text-align: center;
+            padding: 10px;
+        }
+        
+        /* Личные сообщения */
+        .private-message-indicator {
+            font-size: 0.8rem;
+            color: #27ae60;
+            margin-left: 10px;
+        }
+        
+        .chat-type-selector {
+            display: flex;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #333;
+        }
+        
+        .chat-type {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        
+        .chat-type.active {
+            border-bottom: 2px solid #4a76a8;
+            color: #4a76a8;
+        }
+        
+        .private-chat-info {
+            background: rgba(30, 60, 50, 0.3);
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            border-left: 3px solid #27ae60;
+        }
     </style>
 </head>
 <body>
@@ -657,24 +740,67 @@
                 </div>
             </div>
             
-            <div class="container">
-                <div id="chat-messages" class="chat-container">
-                    <!-- Сообщения будут здесь -->
+            <div class="chat-type-selector">
+                <div class="chat-type active" data-chat-type="public">Общий чат</div>
+                <div class="chat-type" data-chat-type="private">Личные сообщения</div>
+            </div>
+            
+            <div id="public-chat" class="chat-tab">
+                <div class="container">
+                    <div id="chat-messages" class="chat-container">
+                        <!-- Сообщения будут здесь -->
+                    </div>
+                    
+                    <div class="sticker-selector">
+                        <div class="sticker" data-sticker="👍">👍</div>
+                        <div class="sticker" data-sticker="👎">👎</div>
+                        <div class="sticker" data-sticker="😊">😊</div>
+                        <div class="sticker" data-sticker="😢">😢</div>
+                        <div class="sticker" data-sticker="🎉">🎉</div>
+                        <div class="sticker" data-sticker="🔥">🔥</div>
+                        <div class="sticker" data-sticker="✅">✅</div>
+                        <div class="sticker" data-sticker="❌">❌</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <textarea id="message-input" placeholder="Введите сообщение..." rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <button id="send-message">Отправить сообщение</button>
+                    </div>
                 </div>
                 
-                <div class="form-group">
-                    <textarea id="message-input" placeholder="Введите сообщение..." rows="3"></textarea>
-                </div>
-                <div class="form-group">
-                    <button id="send-message">Отправить сообщение</button>
+                <div class="container">
+                    <h3>Активные пользователи</h3>
+                    <ul id="online-users" class="user-list">
+                        <!-- Список пользователей будет здесь -->
+                    </ul>
                 </div>
             </div>
             
-            <div class="container">
-                <h3>Активные пользователи</h3>
-                <ul id="online-users" class="user-list">
-                    <!-- Список пользователей будет здесь -->
-                </ul>
+            <div id="private-chat" class="chat-tab hidden">
+                <div class="container">
+                    <div class="private-chat-info">
+                        Выберите пользователя для начала приватной беседы
+                    </div>
+                    
+                    <div id="private-messages" class="chat-container">
+                        <!-- Личные сообщения будут здесь -->
+                    </div>
+                    
+                    <div class="form-group">
+                        <select id="private-recipient">
+                            <option value="">Выберите получателя</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <textarea id="private-message-input" placeholder="Введите личное сообщение..." rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <button id="send-private-message">Отправить личное сообщение</button>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -709,6 +835,7 @@
                 <div class="tab" data-tab="messages">Модерация сообщений</div>
                 <div class="tab" data-tab="admin-chat">Системные уведомления</div>
                 <div class="tab" data-tab="advertisements">Мониторинг безопасности</div>
+                <div class="tab" data-tab="private-messages">Просмотр личных сообщений</div>
             </div>
             
             <div class="tab-content active" id="users-tab">
@@ -759,11 +886,24 @@
                     </div>
                 </div>
             </div>
+            
+            <div class="tab-content" id="private-messages-tab">
+                <div class="container">
+                    <h3>Просмотр личных сообщений</h3>
+                    <div class="form-group">
+                        <select id="private-conversation-selector">
+                            <option value="">Выберите диалог для просмотра</option>
+                        </select>
+                    </div>
+                    <div id="admin-private-messages" class="chat-container">
+                        <!-- Личные сообщения для админа будут здесь -->
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     
     <script>
-        // JavaScript код остается таким же, как в предыдущей версии
         // Класс для работы с пользователями
         class UserManager {
             constructor() {
@@ -913,6 +1053,7 @@
         class MessageManager {
             constructor() {
                 this.messages = JSON.parse(localStorage.getItem('chatMessages')) || [];
+                this.privateMessages = JSON.parse(localStorage.getItem('privateMessages')) || [];
                 this.advertisementKeywords = [
                     'купить', 'продать', 'скидка', 'акция', 'бесплатно', 'только сегодня',
                     'реклама', 'заказать', 'цена', 'магазин', 'интернет-магазин', 'доставка',
@@ -923,6 +1064,7 @@
             // Сохранение сообщений в localStorage
             saveMessages() {
                 localStorage.setItem('chatMessages', JSON.stringify(this.messages));
+                localStorage.setItem('privateMessages', JSON.stringify(this.privateMessages));
             }
             
             // Добавление нового сообщения
@@ -938,13 +1080,21 @@
                     isAdminMessage,
                     messageType,
                     isAdvertisement,
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date().toISOString(),
+                    isSticker: this.isSticker(content)
                 };
                 
                 this.messages.push(newMessage);
                 this.saveMessages();
                 
                 return newMessage;
+            }
+            
+            // Проверка на стикер
+            isSticker(content) {
+                // Простая проверка - если сообщение состоит из одного эмодзи
+                const emojiRegex = /^(?:[\u2700-\u27bf]|(?:\ud83c[\udde6-\uddff]){2}|[\ud800-\udbff][\udc00-\udfff]|[\u0023-\u0039]\ufe0f?\u20e3|\u3299|\u3297|\u303d|\u3030|\u24c2|\ud83c[\udd70-\udd71]|\ud83c[\udd7e-\udd7f]|\ud83c\udd8e|\ud83c[\udd91-\udd9a]|\ud83c[\udde6-\uddff]|[\ud83c[\ude01-\ude02]|\ud83c\ude1a|\ud83c\ude2f|[\ud83c[\ude32-\ude3a]|[\ud83c[\ude50-\ude51]|\u203c|\u2049|[\u25aa-\u25ab]|\u25b6|\u25c0|[\u25fb-\u25fe]|\u00a9|\u00ae|\u2122|\u2139|\ud83c\udc04|[\u2600-\u26FF]|\u2b05|\u2b06|\u2b07|\u2b1b|\u2b1c|\u2b50|\u2b55|\u231a|\u231b|\u2328|\u23cf|[\u23e9-\u23f3]|[\u23f8-\u23fa]|\ud83c\udccf|\u2934|\u2935|[\u2190-\u21ff]){1,3}$/;
+                return emojiRegex.test(content.trim());
             }
             
             // Проверка на рекламное сообщение
@@ -970,10 +1120,101 @@
                 return this.messages.filter(message => message.isAdminMessage);
             }
             
+            // Добавление личного сообщения
+            addPrivateMessage(senderId, senderName, recipientId, recipientName, content) {
+                const newMessage = {
+                    id: Date.now().toString(),
+                    senderId,
+                    senderName,
+                    recipientId,
+                    recipientName,
+                    content,
+                    isSticker: this.isSticker(content),
+                    timestamp: new Date().toISOString()
+                };
+                
+                this.privateMessages.push(newMessage);
+                this.saveMessages();
+                
+                return newMessage;
+            }
+            
+            // Получение личных сообщений между двумя пользователями
+            getPrivateMessages(user1Id, user2Id) {
+                return this.privateMessages.filter(message => 
+                    (message.senderId === user1Id && message.recipientId === user2Id) ||
+                    (message.senderId === user2Id && message.recipientId === user1Id)
+                );
+            }
+            
+            // Получение всех личных сообщений (для админа)
+            getAllPrivateMessages() {
+                return this.privateMessages;
+            }
+            
+            // Получение списка диалогов для пользователя
+            getUserConversations(userId) {
+                const conversations = {};
+                
+                this.privateMessages.forEach(message => {
+                    if (message.senderId === userId || message.recipientId === userId) {
+                        const otherUserId = message.senderId === userId ? message.recipientId : message.senderId;
+                        const otherUserName = message.senderId === userId ? message.recipientName : message.senderName;
+                        
+                        if (!conversations[otherUserId]) {
+                            conversations[otherUserId] = {
+                                userId: otherUserId,
+                                username: otherUserName,
+                                lastMessage: message,
+                                unread: 0
+                            };
+                        }
+                        
+                        if (message.timestamp > conversations[otherUserId].lastMessage.timestamp) {
+                            conversations[otherUserId].lastMessage = message;
+                        }
+                    }
+                });
+                
+                return Object.values(conversations);
+            }
+            
             // Удаление сообщения
             deleteMessage(messageId) {
                 this.messages = this.messages.filter(message => message.id !== messageId);
                 this.saveMessages();
+            }
+            
+            // Удаление личного сообщения
+            deletePrivateMessage(messageId) {
+                this.privateMessages = this.privateMessages.filter(message => message.id !== messageId);
+                this.saveMessages();
+            }
+            
+            // Редактирование сообщения
+            editMessage(messageId, newContent) {
+                const message = this.messages.find(m => m.id === messageId);
+                if (message) {
+                    message.content = newContent;
+                    message.edited = true;
+                    message.editTimestamp = new Date().toISOString();
+                    this.saveMessages();
+                    return true;
+                }
+                return false;
+            }
+            
+            // Редактирование личного сообщения
+            editPrivateMessage(messageId, newContent) {
+                const message = this.privateMessages.find(m => m.id === messageId);
+                if (message) {
+                    message.content = newContent;
+                    message.edited = true;
+                    message.editTimestamp = new Date().toISOString();
+                    this.saveMessages();
+                    return true;
+                }
+                return false;
             }
             
             // Удаление всех сообщений
@@ -994,6 +1235,8 @@
             constructor() {
                 this.userManager = new UserManager();
                 this.messageManager = new MessageManager();
+                this.currentChatType = 'public'; // 'public' или 'private'
+                this.currentPrivateRecipient = null;
                 this.init();
             }
             
@@ -1002,6 +1245,7 @@
                 this.bindEvents();
                 this.checkAuthStatus();
                 this.setupTabs();
+                this.setupChatTypes();
             }
             
             // Привязка событий
@@ -1033,10 +1277,28 @@
                     }
                 });
                 
+                // Личные сообщения
+                document.getElementById('send-private-message').addEventListener('click', () => this.sendPrivateMessage());
+                document.getElementById('private-recipient').addEventListener('change', (e) => {
+                    this.currentPrivateRecipient = e.target.value;
+                    this.loadPrivateMessages();
+                });
+                
+                // Стикеры
+                document.querySelectorAll('.sticker').forEach(sticker => {
+                    sticker.addEventListener('click', (e) => {
+                        const stickerValue = e.target.getAttribute('data-sticker');
+                        this.sendSticker(stickerValue);
+                    });
+                });
+                
                 // Админ-панель
                 document.getElementById('admin-logout').addEventListener('click', () => this.handleLogout());
                 document.getElementById('clear-all-messages').addEventListener('click', () => this.clearAllMessages());
                 document.getElementById('send-admin-message').addEventListener('click', () => this.sendAdminMessage());
+                document.getElementById('private-conversation-selector').addEventListener('change', (e) => {
+                    this.loadAdminPrivateMessages(e.target.value);
+                });
             }
             
             // Настройка вкладок
@@ -1060,6 +1322,34 @@
                             this.loadAdminMessages();
                         } else if (tabId === 'advertisements') {
                             this.loadAdvertisementAlerts();
+                        } else if (tabId === 'private-messages') {
+                            this.loadPrivateConversationsForAdmin();
+                        }
+                    });
+                });
+            }
+            
+            // Настройка типов чата
+            setupChatTypes() {
+                document.querySelectorAll('.chat-type').forEach(type => {
+                    type.addEventListener('click', () => {
+                        const chatType = type.getAttribute('data-chat-type');
+                        
+                        // Убираем активный класс у всех типов
+                        document.querySelectorAll('.chat-type').forEach(t => t.classList.remove('active'));
+                        document.querySelectorAll('.chat-tab').forEach(t => t.classList.add('hidden'));
+                        
+                        // Добавляем активный класс к выбранному типу
+                        type.classList.add('active');
+                        
+                        // Показываем соответствующий чат
+                        if (chatType === 'public') {
+                            document.getElementById('public-chat').classList.remove('hidden');
+                            this.currentChatType = 'public';
+                        } else {
+                            document.getElementById('private-chat').classList.remove('hidden');
+                            this.currentChatType = 'private';
+                            this.loadPrivateRecipients();
                         }
                     });
                 });
@@ -1223,30 +1513,75 @@
                 messagesContainer.innerHTML = '';
                 
                 messages.forEach(message => {
-                    const messageElement = document.createElement('div');
-                    messageElement.className = 'message';
-                    
-                    if (message.userId === this.userManager.currentUser.id) {
-                        messageElement.classList.add('my-message');
-                    } else if (message.isAdminMessage) {
-                        messageElement.classList.add('admin-message');
-                    } else if (message.isAdvertisement) {
-                        messageElement.classList.add('advertisement-message');
-                    }
-                    
-                    messageElement.innerHTML = `
-                        <div class="message-header">
-                            <span>${message.username} ${message.isAdminMessage ? '(Система)' : ''}</span>
-                            <span>${new Date(message.timestamp).toLocaleString()}</span>
-                        </div>
-                        <div class="message-content">${this.escapeHtml(message.content)}</div>
-                    `;
-                    
+                    const messageElement = this.createMessageElement(message, false);
                     messagesContainer.appendChild(messageElement);
                 });
                 
                 // Прокрутка к последнему сообщению
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+            
+            // Создание элемента сообщения
+            createMessageElement(message, isPrivate = false) {
+                const messageElement = document.createElement('div');
+                messageElement.className = 'message';
+                messageElement.dataset.messageId = message.id;
+                
+                if (message.userId === this.userManager.currentUser.id || 
+                    (isPrivate && message.senderId === this.userManager.currentUser.id)) {
+                    messageElement.classList.add('my-message');
+                } else if (message.isAdminMessage) {
+                    messageElement.classList.add('admin-message');
+                } else if (message.isAdvertisement) {
+                    messageElement.classList.add('advertisement-message');
+                } else if (isPrivate) {
+                    messageElement.classList.add('private-message');
+                }
+                
+                let headerText = message.username;
+                if (message.isAdminMessage) headerText += ' (Система)';
+                if (isPrivate) headerText += ' → ' + (message.senderId === this.userManager.currentUser.id ? message.recipientName : message.senderName);
+                
+                let content = message.isSticker ? 
+                    `<div class="sticker-message">${message.content}</div>` : 
+                    `<div class="message-content">${this.escapeHtml(message.content)}</div>`;
+                
+                if (message.edited) {
+                    content += `<div class="edited-indicator">(изменено)</div>`;
+                }
+                
+                messageElement.innerHTML = `
+                    <div class="message-header">
+                        <span>${headerText}</span>
+                        <span>${new Date(message.timestamp).toLocaleString()}</span>
+                    </div>
+                    ${content}
+                `;
+                
+                // Добавляем кнопки управления для своих сообщений
+                if ((message.userId === this.userManager.currentUser.id && !isPrivate) || 
+                    (isPrivate && message.senderId === this.userManager.currentUser.id)) {
+                    const messageControls = document.createElement('div');
+                    messageControls.className = 'message-controls';
+                    messageControls.innerHTML = `
+                        <button class="edit-message" data-message-id="${message.id}">✏️</button>
+                        <button class="delete-message" data-message-id="${message.id}">🗑️</button>
+                    `;
+                    messageElement.appendChild(messageControls);
+                    
+                    // Обработчики для кнопок
+                    messageControls.querySelector('.edit-message').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.editMessage(message.id, isPrivate);
+                    });
+                    
+                    messageControls.querySelector('.delete-message').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.deleteMessage(message.id, isPrivate);
+                    });
+                }
+                
+                return messageElement;
             }
             
             // Загрузка онлайн пользователей
@@ -1257,6 +1592,8 @@
                 usersContainer.innerHTML = '';
                 
                 onlineUsers.forEach(user => {
+                    if (user.id === this.userManager.currentUser.id) return;
+                    
                     const userElement = document.createElement('li');
                     userElement.innerHTML = `
                         <span><span class="online-indicator"></span>${user.username}</span>
@@ -1265,6 +1602,150 @@
                     usersContainer.appendChild(userElement);
                 });
             }
+            
+            // Загрузка получателей для личных сообщений
+            loadPrivateRecipients() {
+                const recipientSelect = document.getElementById('private-recipient');
+                const onlineUsers = this.userManager.getOnlineUsers();
+                
+                recipientSelect.innerHTML = '<option value="">Выберите получателя</option>';
+                
+                onlineUsers.forEach(user => {
+                    if (user.id === this.userManager.currentUser.id) return;
+                    
+                    const option = document.createElement('option');
+                    option.value = user.id;
+                    option.textContent = user.username + (user.isAdmin ? ' (Админ)' : '');
+                    recipientSelect.appendChild(option);
+                });
+            }
+            
+            // Загрузка личных сообщений
+            loadPrivateMessages() {
+                if (!this.currentPrivateRecipient) return;
+                
+                const messagesContainer = document.getElementById('private-messages');
+                const messages = this.messageManager.getPrivateMessages(
+                    this.userManager.currentUser.id, 
+                    this.currentPrivateRecipient
+                );
+                
+                messagesContainer.innerHTML = '';
+                
+                messages.forEach(message => {
+                    const messageElement = this.createMessageElement(message, true);
+                    messagesContainer.appendChild(messageElement);
+                });
+                
+                // Прокрутка к последнему сообщению
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+            
+            // Отправка сообщения
+            sendMessage() {
+                const messageInput = document.getElementById('message-input');
+                const content = messageInput.value.trim();
+                
+                if (!content) return;
+                
+                this.messageManager.addMessage(
+                    this.userManager.currentUser.id,
+                    this.userManager.currentUser.username,
+                    content
+                );
+                
+                messageInput.value = '';
+                this.loadMessages();
+            }
+            
+            // Отправка стикера
+            sendSticker(sticker) {
+                this.messageManager.addMessage(
+                    this.userManager.currentUser.id,
+                    this.userManager.currentUser.username,
+                    sticker
+                );
+                
+                this.loadMessages();
+            }
+            
+            // Отправка личного сообщения
+            sendPrivateMessage() {
+                if (!this.currentPrivateRecipient) {
+                    alert('Выберите получателя');
+                    return;
+                }
+                
+                const messageInput = document.getElementById('private-message-input');
+                const content = messageInput.value.trim();
+                
+                if (!content) return;
+                
+                const recipient = this.userManager.users.find(u => u.id === this.currentPrivateRecipient);
+                
+                this.messageManager.addPrivateMessage(
+                    this.userManager.currentUser.id,
+                    this.userManager.currentUser.username,
+                    this.currentPrivateRecipient,
+                    recipient.username,
+                    content
+                );
+                
+                messageInput.value = '';
+                this.loadPrivateMessages();
+            }
+            
+            // Редактирование сообщения
+            editMessage(messageId, isPrivate = false) {
+                let message;
+                if (isPrivate) {
+                    message = this.messageManager.privateMessages.find(m => m.id === messageId);
+                } else {
+                    message = this.messageManager.messages.find(m => m.id === messageId);
+                }
+                
+                if (!message) return;
+                
+                const newContent = prompt('Редактировать сообщение:', message.content);
+                if (newContent !== null && newContent.trim() !== '') {
+                    if (isPrivate) {
+                        this.messageManager.editPrivateMessage(messageId, newContent.trim());
+                    } else {
+                        this.messageManager.editMessage(messageId, newContent.trim());
+                    }
+                    
+                    if (this.currentChatType === 'public') {
+                        this.loadMessages();
+                    } else {
+                        this.loadPrivateMessages();
+                    }
+                    
+                    if (this.userManager.currentUser.isAdmin) {
+                        this.loadAdminMessages();
+                    }
+                }
+            }
+            
+            // Удаление сообщения
+            deleteMessage(messageId, isPrivate = false) {
+                if (confirm('Вы уверены, что хотите удалить это сообщение?')) {
+                    if (isPrivate) {
+                        this.messageManager.deletePrivateMessage(messageId);
+                        this.loadPrivateMessages();
+                    } else {
+                        this.messageManager.deleteMessage(messageId);
+                        this.loadMessages();
+                    }
+                    
+                    if (this.userManager.currentUser.isAdmin) {
+                        this.loadAdminMessages();
+                    }
+                }
+            }
+            
+            // Остальные методы остаются без изменений
+            // ... (loadAdminUserList, loadAdminMessages, loadAdvertisementAlerts, sendAdminMessage, 
+            // banUser, unbanUser, deleteUser, clearAllMessages, clearAdvertisementMessages, handleLogout, escapeHtml)
             
             // Загрузка пользователей для админ-панели
             loadAdminUserList() {
@@ -1417,21 +1898,64 @@
                 });
             }
             
-            // Отправка сообщения
-            sendMessage() {
-                const messageInput = document.getElementById('message-input');
-                const content = messageInput.value.trim();
+            // Загрузка диалогов для админа
+            loadPrivateConversationsForAdmin() {
+                const selector = document.getElementById('private-conversation-selector');
+                const allUsers = this.userManager.getAllUsers();
                 
-                if (!content) return;
+                selector.innerHTML = '<option value="">Выберите диалог для просмотра</option>';
                 
-                this.messageManager.addMessage(
-                    this.userManager.currentUser.id,
-                    this.userManager.currentUser.username,
-                    content
-                );
+                // Создаем опции для всех возможных пар пользователей
+                for (let i = 0; i < allUsers.length; i++) {
+                    for (let j = i + 1; j < allUsers.length; j++) {
+                        const user1 = allUsers[i];
+                        const user2 = allUsers[j];
+                        
+                        const option = document.createElement('option');
+                        option.value = `${user1.id}-${user2.id}`;
+                        option.textContent = `${user1.username} ↔ ${user2.username}`;
+                        selector.appendChild(option);
+                    }
+                }
+            }
+            
+            // Загрузка личных сообщений для админа
+            loadAdminPrivateMessages(conversationId) {
+                if (!conversationId) return;
                 
-                messageInput.value = '';
-                this.loadMessages();
+                const [user1Id, user2Id] = conversationId.split('-');
+                const messagesContainer = document.getElementById('admin-private-messages');
+                const messages = this.messageManager.getPrivateMessages(user1Id, user2Id);
+                
+                messagesContainer.innerHTML = '';
+                
+                messages.forEach(message => {
+                    const messageElement = document.createElement('div');
+                    messageElement.className = 'message private-message';
+                    
+                    messageElement.innerHTML = `
+                        <div class="message-header">
+                            <span>${message.senderName} → ${message.recipientName}</span>
+                            <span>${new Date(message.timestamp).toLocaleString()}</span>
+                            <button class="btn-danger delete-message" data-message-id="${message.id}" data-private="true">Удалить</button>
+                        </div>
+                        <div class="message-content">${this.escapeHtml(message.content)}</div>
+                    `;
+                    
+                    messagesContainer.appendChild(messageElement);
+                });
+                
+                // Добавление обработчиков для кнопок удаления
+                document.querySelectorAll('.delete-message[data-private="true"]').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const messageId = e.target.getAttribute('data-message-id');
+                        this.messageManager.deletePrivateMessage(messageId);
+                        this.loadAdminPrivateMessages(conversationId);
+                    });
+                });
+                
+                // Прокрутка к последнему сообщению
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
             
             // Отправка сообщения от имени администратора
@@ -1497,18 +2021,6 @@
                     this.userManager.deleteUser(userId);
                     this.loadAdminUserList();
                     this.updateStats();
-                }
-            }
-            
-            // Удаление сообщения
-            deleteMessage(messageId) {
-                this.messageManager.deleteMessage(messageId);
-                this.loadAdminMessages();
-                this.loadAdvertisementAlerts();
-                
-                // Если мы в чате, также обновляем сообщения там
-                if (!this.userManager.currentUser.isAdmin) {
-                    this.loadMessages();
                 }
             }
             
