@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Онлайн Чат</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        #app {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        h1, h2, h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+        
+        input, textarea, button, select {
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            width: 100%;
+        }
+        
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        .btn-danger {
+            background-color: #e74c3c;
+        }
+        
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        
+        .btn-success {
+            background-color: #2ecc71;
+        }
+        
+        .btn-success:hover {
+            background-color: #27ae60;
+        }
+        
+        .btn-warning {
+            background-color: #f39c12;
+        }
+        
+        .btn-warning:hover {
+            background-color: #d35400;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .message {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+        
+        .message-content {
+            word-wrap: break-word;
+        }
+        
+        .my-message {
+            background-color: #e1f5fe;
+            border-left: 3px solid #03a9f4;
+        }
+        
+        .admin-message {
+            background-color: #fff8e1;
+            border-left: 3px solid #ffc107;
+        }
+        
+        .advertisement-message {
+            background-color: #ffebee;
+            border-left: 3px solid #f44336;
+        }
+        
+        .chat-container {
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .user-list {
+            list-style-type: none;
+            margin-top: 10px;
+        }
+        
+        .user-list li {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .user-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .admin-badge {
+            background-color: #e74c3c;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.8em;
+        }
+        
+        .banned-badge {
+            background-color: #f39c12;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.8em;
+        }
+        
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .nav button {
+            width: auto;
+            padding: 8px 15px;
+        }
+        
+        .error {
+            color: #e74c3c;
+            margin-top: 5px;
+            font-size: 0.9em;
+        }
+        
+        .success {
+            color: #2ecc71;
+            margin-top: 5px;
+            font-size: 0.9em;
+        }
+        
+        .warning {
+            color: #f39c12;
+            margin-top: 5px;
+            font-size: 0.9em;
+        }
+        
+        .admin-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .admin-controls button {
+            width: auto;
+            padding: 5px 10px;
+            font-size: 0.8em;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 15px;
+        }
+        
+        .tab {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        
+        .tab.active {
+            border-bottom: 2px solid #3498db;
+            color: #3498db;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .advertisement-alert {
+            background-color: #ffebee;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 3px solid #f44336;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Начальный экран с выбором входа/регистрации -->
+        <div id="welcome-screen" class="container">
+            <h1>Добро пожаловать в онлайн чат</h1>
+            <p>Пожалуйста, войдите или зарегистрируйтесь</p>
+            <div class="form-group">
+                <button id="login-btn">Войти</button>
+            </div>
+            <div class="form-group">
+                <button id="register-btn">Зарегистрироваться</button>
+            </div>
+            <div class="form-group">
+                <button id="admin-btn" class="btn-success">Войти как администратор</button>
+            </div>
+        </div>
+        
+        <!-- Форма входа -->
+        <div id="login-form" class="container hidden">
+            <h2>Вход в аккаунт</h2>
+            <div class="form-group">
+                <input type="text" id="login-username" placeholder="Имя пользователя" required>
+            </div>
+            <div class="form-group">
+                <input type="password" id="login-password" placeholder="Пароль" required>
+            </div>
+            <div class="form-group">
+                <button id="login-submit">Войти</button>
+            </div>
+            <div class="form-group">
+                <button id="login-back">Назад</button>
+            </div>
+            <div id="login-error" class="error hidden"></div>
+        </div>
+        
+        <!-- Форма регистрации -->
+        <div id="register-form" class="container hidden">
+            <h2>Регистрация</h2>
+            <div class="form-group">
+                <input type="text" id="register-username" placeholder="Имя пользователя" required>
+            </div>
+            <div class="form-group">
+                <input type="email" id="register-email" placeholder="Email" required>
+            </div>
+            <div class="form-group">
+                <input type="password" id="register-password" placeholder="Пароль" required>
+            </div>
+            <div class="form-group">
+                <input type="password" id="register-confirm-password" placeholder="Подтвердите пароль" required>
+            </div>
+            <div class="form-group">
+                <button id="register-submit">Зарегистрироваться</button>
+            </div>
+            <div class="form-group">
+                <button id="register-back">Назад</button>
+            </div>
+            <div id="register-error" class="error hidden"></div>
+            <div id="register-success" class="success hidden"></div>
+        </div>
+        
+        <!-- Форма входа администратора -->
+        <div id="admin-login-form" class="container hidden">
+            <h2>Вход для администратора</h2>
+            <div class="form-group">
+                <input type="password" id="admin-password" placeholder="Пароль администратора" required>
+            </div>
+            <div class="form-group">
+                <button id="admin-login-submit">Войти</button>
+            </div>
+            <div class="form-group">
+                <button id="admin-login-back">Назад</button>
+            </div>
+            <div id="admin-login-error" class="error hidden"></div>
+        </div>
+        
+        <!-- Основной интерфейс чата -->
+        <div id="chat-interface" class="hidden">
+            <div class="nav">
+                <h2>Онлайн Чат</h2>
+                <div>
+                    <span id="current-user">Пользователь</span>
+                    <button id="logout-btn">Выйти</button>
+                </div>
+            </div>
+            
+            <div class="container">
+                <div id="chat-messages" class="chat-container">
+                    <!-- Сообщения будут здесь -->
+                </div>
+                
+                <div class="form-group">
+                    <textarea id="message-input" placeholder="Введите ваше сообщение..." rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <button id="send-message">Отправить</button>
+                </div>
+            </div>
+            
+            <div class="container">
+                <h3>Пользователи онлайн</h3>
+                <ul id="online-users" class="user-list">
+                    <!-- Список пользователей будет здесь -->
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Админ-панель -->
+        <div id="admin-panel" class="hidden">
+            <div class="nav">
+                <h2>Панель администратора</h2>
+                <button id="admin-logout">Выйти</button>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="total-users">0</div>
+                    <div class="stat-label">Всего пользователей</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="online-users-count">0</div>
+                    <div class="stat-label">Пользователей онлайн</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="total-messages">0</div>
+                    <div class="stat-label">Всего сообщений</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="banned-users">0</div>
+                    <div class="stat-label">Заблокированных</div>
+                </div>
+            </div>
+            
+            <div class="tabs">
+                <div class="tab active" data-tab="users">Управление пользователями</div>
+                <div class="tab" data-tab="messages">Управление сообщениями</div>
+                <div class="tab" data-tab="admin-chat">Чат от имени администратора</div>
+                <div class="tab" data-tab="advertisements">Выявление рекламы</div>
+            </div>
+            
+            <div class="tab-content active" id="users-tab">
+                <div class="container">
+                    <h3>Управление пользователями</h3>
+                    <ul id="admin-user-list" class="user-list">
+                        <!-- Список пользователей для админа будет здесь -->
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="tab-content" id="messages-tab">
+                <div class="container">
+                    <h3>Управление сообщениями</h3>
+                    <div id="admin-messages" class="chat-container">
+                        <!-- Сообщения для админа будут здесь -->
+                    </div>
+                    <div class="form-group">
+                        <button id="clear-all-messages" class="btn-danger">Удалить все сообщения</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tab-content" id="admin-chat-tab">
+                <div class="container">
+                    <h3>Чат от имени администратора</h3>
+                    <div class="form-group">
+                        <select id="admin-message-type">
+                            <option value="info">Информационное сообщение</option>
+                            <option value="warning">Предупреждение</option>
+                            <option value="announcement">Объявление</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <textarea id="admin-message-input" placeholder="Введите сообщение от имени администратора..." rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <button id="send-admin-message" class="btn-warning">Отправить как администратор</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tab-content" id="advertisements-tab">
+                <div class="container">
+                    <h3>Выявление рекламных сообщений</h3>
+                    <div id="advertisement-alerts">
+                        <!-- Оповещения о рекламе будут здесь -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Класс для работы с пользователями
+        class UserManager {
+            constructor() {
+                this.users = JSON.parse(localStorage.getItem('chatUsers')) || [];
+                this.currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
+                this.adminPassword = 'admin228';
+            }
+            
+            // Сохранение пользователей в localStorage
+            saveUsers() {
+                localStorage.setItem('chatUsers', JSON.stringify(this.users));
+            }
+            
+            // Регистрация нового пользователя
+            register(username, email, password) {
+                // Проверка на существование пользователя
+                if (this.users.find(user => user.username === username)) {
+                    return { success: false, message: 'Пользователь с таким именем уже существует' };
+                }
+                
+                if (this.users.find(user => user.email === email)) {
+                    return { success: false, message: 'Пользователь с таким email уже существует' };
+                }
+                
+                // Добавление нового пользователя
+                const newUser = {
+                    id: Date.now().toString(),
+                    username,
+                    email,
+                    password,
+                    isOnline: true,
+                    isAdmin: false,
+                    isBanned: false,
+                    banReason: '',
+                    registrationDate: new Date().toISOString(),
+                    lastLogin: new Date().toISOString()
+                };
+                
+                this.users.push(newUser);
+                this.saveUsers();
+                
+                return { success: true, user: newUser };
+            }
+            
+            // Вход пользователя
+            login(username, password) {
+                const user = this.users.find(u => u.username === username && u.password === password);
+                
+                if (!user) {
+                    return { success: false, message: 'Неверное имя пользователя или пароль' };
+                }
+                
+                if (user.isBanned) {
+                    return { success: false, message: `Ваш аккаунт заблокирован. Причина: ${user.banReason}` };
+                }
+                
+                user.isOnline = true;
+                user.lastLogin = new Date().toISOString();
+                this.saveUsers();
+                this.currentUser = user;
+                localStorage.setItem('currentUser', JSON.stringify(user));
+                
+                return { success: true, user };
+            }
+            
+            // Вход администратора
+            adminLogin(password) {
+                if (password !== this.adminPassword) {
+                    return { success: false, message: 'Неверный пароль администратора' };
+                }
+                
+                const adminUser = {
+                    id: 'admin',
+                    username: 'Администратор',
+                    isOnline: true,
+                    isAdmin: true
+                };
+                
+                this.currentUser = adminUser;
+                localStorage.setItem('currentUser', JSON.stringify(adminUser));
+                
+                return { success: true, user: adminUser };
+            }
+            
+            // Выход пользователя
+            logout() {
+                if (this.currentUser && this.currentUser.id !== 'admin') {
+                    const user = this.users.find(u => u.id === this.currentUser.id);
+                    if (user) {
+                        user.isOnline = false;
+                        this.saveUsers();
+                    }
+                }
+                
+                this.currentUser = null;
+                localStorage.removeItem('currentUser');
+            }
+            
+            // Получение списка онлайн пользователей
+            getOnlineUsers() {
+                return this.users.filter(user => user.isOnline && !user.isBanned);
+            }
+            
+            // Получение всех пользователей
+            getAllUsers() {
+                return this.users;
+            }
+            
+            // Получение забаненных пользователей
+            getBannedUsers() {
+                return this.users.filter(user => user.isBanned);
+            }
+            
+            // Бан пользователя
+            banUser(userId, reason) {
+                const user = this.users.find(u => u.id === userId);
+                if (user) {
+                    user.isBanned = true;
+                    user.banReason = reason;
+                    user.isOnline = false;
+                    this.saveUsers();
+                    return true;
+                }
+                return false;
+            }
+            
+            // Разбан пользователя
+            unbanUser(userId) {
+                const user = this.users.find(u => u.id === userId);
+                if (user) {
+                    user.isBanned = false;
+                    user.banReason = '';
+                    this.saveUsers();
+                    return true;
+                }
+                return false;
+            }
+            
+            // Удаление пользователя
+            deleteUser(userId) {
+                this.users = this.users.filter(user => user.id !== userId);
+                this.saveUsers();
+            }
+        }
+
+        // Класс для работы с сообщениями
+        class MessageManager {
+            constructor() {
+                this.messages = JSON.parse(localStorage.getItem('chatMessages')) || [];
+                this.advertisementKeywords = [
+                    'купить', 'продать', 'скидка', 'акция', 'бесплатно', 'только сегодня',
+                    'реклама', 'заказать', 'цена', 'магазин', 'интернет-магазин', 'доставка',
+                    'оптом', 'розница', 'распродажа', 'спецпредложение', 'промокод'
+                ];
+            }
+            
+            // Сохранение сообщений в localStorage
+            saveMessages() {
+                localStorage.setItem('chatMessages', JSON.stringify(this.messages));
+            }
+            
+            // Добавление нового сообщения
+            addMessage(userId, username, content, isAdminMessage = false, messageType = 'user') {
+                // Проверка на рекламу
+                const isAdvertisement = this.checkForAdvertisement(content);
+                
+                const newMessage = {
+                    id: Date.now().toString(),
+                    userId,
+                    username,
+                    content,
+                    isAdminMessage,
+                    messageType,
+                    isAdvertisement,
+                    timestamp: new Date().toISOString()
+                };
+                
+                this.messages.push(newMessage);
+                this.saveMessages();
+                
+                return newMessage;
+            }
+            
+            // Проверка на рекламное сообщение
+            checkForAdvertisement(content) {
+                const lowerContent = content.toLowerCase();
+                return this.advertisementKeywords.some(keyword => 
+                    lowerContent.includes(keyword.toLowerCase())
+                );
+            }
+            
+            // Получение всех сообщений
+            getAllMessages() {
+                return this.messages;
+            }
+            
+            // Получение рекламных сообщений
+            getAdvertisementMessages() {
+                return this.messages.filter(message => message.isAdvertisement);
+            }
+            
+            // Получение сообщений администратора
+            getAdminMessages() {
+                return this.messages.filter(message => message.isAdminMessage);
+            }
+            
+            // Удаление сообщения
+            deleteMessage(messageId) {
+                this.messages = this.messages.filter(message => message.id !== messageId);
+                this.saveMessages();
+            }
+            
+            // Удаление всех сообщений
+            clearAllMessages() {
+                this.messages = [];
+                this.saveMessages();
+            }
+            
+            // Удаление всех рекламных сообщений
+            clearAdvertisementMessages() {
+                this.messages = this.messages.filter(message => !message.isAdvertisement);
+                this.saveMessages();
+            }
+        }
+
+        // Класс приложения
+        class ChatApp {
+            constructor() {
+                this.userManager = new UserManager();
+                this.messageManager = new MessageManager();
+                this.init();
+            }
+            
+            // Инициализация приложения
+            init() {
+                this.bindEvents();
+                this.checkAuthStatus();
+                this.setupTabs();
+            }
+            
+            // Привязка событий
+            bindEvents() {
+                // Начальный экран
+                document.getElementById('login-btn').addEventListener('click', () => this.showScreen('login-form'));
+                document.getElementById('register-btn').addEventListener('click', () => this.showScreen('register-form'));
+                document.getElementById('admin-btn').addEventListener('click', () => this.showScreen('admin-login-form'));
+                
+                // Форма входа
+                document.getElementById('login-back').addEventListener('click', () => this.showScreen('welcome-screen'));
+                document.getElementById('login-submit').addEventListener('click', () => this.handleLogin());
+                
+                // Форма регистрации
+                document.getElementById('register-back').addEventListener('click', () => this.showScreen('welcome-screen'));
+                document.getElementById('register-submit').addEventListener('click', () => this.handleRegister());
+                
+                // Форма входа администратора
+                document.getElementById('admin-login-back').addEventListener('click', () => this.showScreen('welcome-screen'));
+                document.getElementById('admin-login-submit').addEventListener('click', () => this.handleAdminLogin());
+                
+                // Чат
+                document.getElementById('logout-btn').addEventListener('click', () => this.handleLogout());
+                document.getElementById('send-message').addEventListener('click', () => this.sendMessage());
+                document.getElementById('message-input').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.sendMessage();
+                    }
+                });
+                
+                // Админ-панель
+                document.getElementById('admin-logout').addEventListener('click', () => this.handleLogout());
+                document.getElementById('clear-all-messages').addEventListener('click', () => this.clearAllMessages());
+                document.getElementById('send-admin-message').addEventListener('click', () => this.sendAdminMessage());
+            }
+            
+            // Настройка вкладок
+            setupTabs() {
+                document.querySelectorAll('.tab').forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        const tabId = tab.getAttribute('data-tab');
+                        
+                        // Убираем активный класс у всех вкладок и контента
+                        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                        
+                        // Добавляем активный класс к выбранной вкладке и контенту
+                        tab.classList.add('active');
+                        document.getElementById(`${tabId}-tab`).classList.add('active');
+                        
+                        // Обновляем данные для активной вкладки
+                        if (tabId === 'users') {
+                            this.loadAdminUserList();
+                        } else if (tabId === 'messages') {
+                            this.loadAdminMessages();
+                        } else if (tabId === 'advertisements') {
+                            this.loadAdvertisementAlerts();
+                        }
+                    });
+                });
+            }
+            
+            // Проверка статуса авторизации
+            checkAuthStatus() {
+                if (this.userManager.currentUser) {
+                    if (this.userManager.currentUser.isAdmin) {
+                        this.showAdminPanel();
+                    } else {
+                        this.showChat();
+                    }
+                } else {
+                    this.showScreen('welcome-screen');
+                }
+            }
+            
+            // Отображение экрана
+            showScreen(screenId) {
+                document.querySelectorAll('#app > div').forEach(div => {
+                    div.classList.add('hidden');
+                });
+                document.getElementById(screenId).classList.remove('hidden');
+            }
+            
+            // Обработка входа
+            handleLogin() {
+                const username = document.getElementById('login-username').value;
+                const password = document.getElementById('login-password').value;
+                const errorElement = document.getElementById('login-error');
+                
+                if (!username || !password) {
+                    errorElement.textContent = 'Пожалуйста, заполните все поля';
+                    errorElement.classList.remove('hidden');
+                    return;
+                }
+                
+                const result = this.userManager.login(username, password);
+                
+                if (result.success) {
+                    this.showChat();
+                } else {
+                    errorElement.textContent = result.message;
+                    errorElement.classList.remove('hidden');
+                }
+            }
+            
+            // Обработка регистрации
+            handleRegister() {
+                const username = document.getElementById('register-username').value;
+                const email = document.getElementById('register-email').value;
+                const password = document.getElementById('register-password').value;
+                const confirmPassword = document.getElementById('register-confirm-password').value;
+                const errorElement = document.getElementById('register-error');
+                const successElement = document.getElementById('register-success');
+                
+                // Скрываем предыдущие сообщения
+                errorElement.classList.add('hidden');
+                successElement.classList.add('hidden');
+                
+                // Проверка заполнения полей
+                if (!username || !email || !password || !confirmPassword) {
+                    errorElement.textContent = 'Пожалуйста, заполните все поля';
+                    errorElement.classList.remove('hidden');
+                    return;
+                }
+                
+                // Проверка совпадения паролей
+                if (password !== confirmPassword) {
+                    errorElement.textContent = 'Пароли не совпадают';
+                    errorElement.classList.remove('hidden');
+                    return;
+                }
+                
+                // Регистрация пользователя
+                const result = this.userManager.register(username, email, password);
+                
+                if (result.success) {
+                    successElement.textContent = 'Регистрация прошла успешно! Теперь вы можете войти.';
+                    successElement.classList.remove('hidden');
+                    
+                    // Очистка формы
+                    document.getElementById('register-username').value = '';
+                    document.getElementById('register-email').value = '';
+                    document.getElementById('register-password').value = '';
+                    document.getElementById('register-confirm-password').value = '';
+                    
+                    // Возврат к экрану входа через 2 секунды
+                    setTimeout(() => {
+                        this.showScreen('login-form');
+                    }, 2000);
+                } else {
+                    errorElement.textContent = result.message;
+                    errorElement.classList.remove('hidden');
+                }
+            }
+            
+            // Обработка входа администратора
+            handleAdminLogin() {
+                const password = document.getElementById('admin-password').value;
+                const errorElement = document.getElementById('admin-login-error');
+                
+                if (!password) {
+                    errorElement.textContent = 'Пожалуйста, введите пароль';
+                    errorElement.classList.remove('hidden');
+                    return;
+                }
+                
+                const result = this.userManager.adminLogin(password);
+                
+                if (result.success) {
+                    this.showAdminPanel();
+                } else {
+                    errorElement.textContent = result.message;
+                    errorElement.classList.remove('hidden');
+                }
+            }
+            
+            // Отображение чата
+            showChat() {
+                this.showScreen('chat-interface');
+                document.getElementById('current-user').textContent = this.userManager.currentUser.username;
+                this.loadMessages();
+                this.loadOnlineUsers();
+                
+                // Обновление списка пользователей каждые 5 секунд
+                setInterval(() => {
+                    this.loadOnlineUsers();
+                }, 5000);
+            }
+            
+            // Отображение админ-панели
+            showAdminPanel() {
+                this.showScreen('admin-panel');
+                this.updateStats();
+                this.loadAdminUserList();
+                this.loadAdminMessages();
+                
+                // Обновление данных каждые 5 секунд
+                setInterval(() => {
+                    this.updateStats();
+                    this.loadAdminUserList();
+                    this.loadAdminMessages();
+                }, 5000);
+            }
+            
+            // Обновление статистики
+            updateStats() {
+                document.getElementById('total-users').textContent = this.userManager.getAllUsers().length;
+                document.getElementById('online-users-count').textContent = this.userManager.getOnlineUsers().length;
+                document.getElementById('total-messages').textContent = this.messageManager.getAllMessages().length;
+                document.getElementById('banned-users').textContent = this.userManager.getBannedUsers().length;
+            }
+            
+            // Загрузка сообщений в чат
+            loadMessages() {
+                const messagesContainer = document.getElementById('chat-messages');
+                const messages = this.messageManager.getAllMessages();
+                
+                messagesContainer.innerHTML = '';
+                
+                messages.forEach(message => {
+                    const messageElement = document.createElement('div');
+                    messageElement.className = 'message';
+                    
+                    if (message.userId === this.userManager.currentUser.id) {
+                        messageElement.classList.add('my-message');
+                    } else if (message.isAdminMessage) {
+                        messageElement.classList.add('admin-message');
+                    } else if (message.isAdvertisement) {
+                        messageElement.classList.add('advertisement-message');
+                    }
+                    
+                    messageElement.innerHTML = `
+                        <div class="message-header">
+                            <span>${message.username} ${message.isAdminMessage ? '(Администратор)' : ''}</span>
+                            <span>${new Date(message.timestamp).toLocaleString()}</span>
+                        </div>
+                        <div class="message-content">${this.escapeHtml(message.content)}</div>
+                    `;
+                    
+                    messagesContainer.appendChild(messageElement);
+                });
+                
+                // Прокрутка к последнему сообщению
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+            
+            // Загрузка онлайн пользователей
+            loadOnlineUsers() {
+                const usersContainer = document.getElementById('online-users');
+                const onlineUsers = this.userManager.getOnlineUsers();
+                
+                usersContainer.innerHTML = '';
+                
+                onlineUsers.forEach(user => {
+                    const userElement = document.createElement('li');
+                    userElement.innerHTML = `
+                        <span>${user.username}</span>
+                        ${user.isAdmin ? '<span class="admin-badge">Админ</span>' : ''}
+                    `;
+                    usersContainer.appendChild(userElement);
+                });
+            }
+            
+            // Загрузка пользователей для админ-панели
+            loadAdminUserList() {
+                const usersContainer = document.getElementById('admin-user-list');
+                const allUsers = this.userManager.getAllUsers();
+                
+                usersContainer.innerHTML = '';
+                
+                allUsers.forEach(user => {
+                    const userElement = document.createElement('li');
+                    
+                    const banButton = user.isBanned ? 
+                        `<button class="btn-success unban-user" data-user-id="${user.id}">Разблокировать</button>` :
+                        `<button class="btn-warning ban-user" data-user-id="${user.id}">Заблокировать</button>`;
+                    
+                    userElement.innerHTML = `
+                        <div>
+                            <strong>${user.username}</strong> (${user.email})
+                            <div>Зарегистрирован: ${new Date(user.registrationDate).toLocaleDateString()}</div>
+                            ${user.isBanned ? `<div class="warning">Заблокирован. Причина: ${user.banReason}</div>` : ''}
+                        </div>
+                        <div>
+                            <span style="color: ${user.isOnline ? '#2ecc71' : '#e74c3c'}">
+                                ${user.isOnline ? 'Онлайн' : 'Оффлайн'}
+                            </span>
+                            <div class="admin-controls">
+                                ${banButton}
+                                <button class="btn-danger delete-user" data-user-id="${user.id}">Удалить</button>
+                            </div>
+                        </div>
+                    `;
+                    usersContainer.appendChild(userElement);
+                });
+                
+                // Добавление обработчиков для кнопок
+                document.querySelectorAll('.ban-user').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const userId = e.target.getAttribute('data-user-id');
+                        this.banUser(userId);
+                    });
+                });
+                
+                document.querySelectorAll('.unban-user').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const userId = e.target.getAttribute('data-user-id');
+                        this.unbanUser(userId);
+                    });
+                });
+                
+                document.querySelectorAll('.delete-user').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const userId = e.target.getAttribute('data-user-id');
+                        this.deleteUser(userId);
+                    });
+                });
+            }
+            
+            // Загрузка сообщений для админ-панели
+            loadAdminMessages() {
+                const messagesContainer = document.getElementById('admin-messages');
+                const messages = this.messageManager.getAllMessages();
+                
+                messagesContainer.innerHTML = '';
+                
+                messages.forEach(message => {
+                    const messageElement = document.createElement('div');
+                    messageElement.className = 'message';
+                    
+                    if (message.isAdminMessage) {
+                        messageElement.classList.add('admin-message');
+                    } else if (message.isAdvertisement) {
+                        messageElement.classList.add('advertisement-message');
+                    }
+                    
+                    messageElement.innerHTML = `
+                        <div class="message-header">
+                            <span>${message.username} ${message.isAdminMessage ? '(Администратор)' : ''}</span>
+                            <span>${new Date(message.timestamp).toLocaleString()}</span>
+                            <button class="btn-danger delete-message" data-message-id="${message.id}">Удалить</button>
+                        </div>
+                        <div class="message-content">${this.escapeHtml(message.content)}</div>
+                    `;
+                    
+                    messagesContainer.appendChild(messageElement);
+                });
+                
+                // Добавление обработчиков для кнопок удаления сообщений
+                document.querySelectorAll('.delete-message').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const messageId = e.target.getAttribute('data-message-id');
+                        this.deleteMessage(messageId);
+                    });
+                });
+                
+                // Прокрутка к последнему сообщению
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+            
+            // Загрузка оповещений о рекламе
+            loadAdvertisementAlerts() {
+                const alertsContainer = document.getElementById('advertisement-alerts');
+                const adMessages = this.messageManager.getAdvertisementMessages();
+                
+                alertsContainer.innerHTML = '';
+                
+                if (adMessages.length === 0) {
+                    alertsContainer.innerHTML = '<p>Рекламные сообщения не обнаружены.</p>';
+                    return;
+                }
+                
+                adMessages.forEach(message => {
+                    const alertElement = document.createElement('div');
+                    alertElement.className = 'advertisement-alert';
+                    
+                    alertElement.innerHTML = `
+                        <div class="message-header">
+                            <span>${message.username}</span>
+                            <span>${new Date(message.timestamp).toLocaleString()}</span>
+                            <button class="btn-danger delete-message" data-message-id="${message.id}">Удалить</button>
+                        </div>
+                        <div class="message-content">${this.escapeHtml(message.content)}</div>
+                        <div class="admin-controls">
+                            <button class="btn-warning ban-user" data-user-id="${message.userId}">Заблокировать пользователя</button>
+                            <button class="btn-danger clear-all-ads">Удалить все рекламные сообщения</button>
+                        </div>
+                    `;
+                    
+                    alertsContainer.appendChild(alertElement);
+                });
+                
+                // Добавление обработчиков для кнопок
+                document.querySelectorAll('.delete-message').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const messageId = e.target.getAttribute('data-message-id');
+                        this.deleteMessage(messageId);
+                    });
+                });
+                
+                document.querySelectorAll('.ban-user').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const userId = e.target.getAttribute('data-user-id');
+                        this.banUser(userId);
+                    });
+                });
+                
+                document.querySelectorAll('.clear-all-ads').forEach(button => {
+                    button.addEventListener('click', () => {
+                        this.clearAdvertisementMessages();
+                    });
+                });
+            }
+            
+            // Отправка сообщения
+            sendMessage() {
+                const messageInput = document.getElementById('message-input');
+                const content = messageInput.value.trim();
+                
+                if (!content) return;
+                
+                this.messageManager.addMessage(
+                    this.userManager.currentUser.id,
+                    this.userManager.currentUser.username,
+                    content
+                );
+                
+                messageInput.value = '';
+                this.loadMessages();
+            }
+            
+            // Отправка сообщения от имени администратора
+            sendAdminMessage() {
+                const messageInput = document.getElementById('admin-message-input');
+                const messageType = document.getElementById('admin-message-type').value;
+                const content = messageInput.value.trim();
+                
+                if (!content) return;
+                
+                let formattedContent = content;
+                
+                // Форматирование сообщения в зависимости от типа
+                switch(messageType) {
+                    case 'info':
+                        formattedContent = `ℹ️ ИНФОРМАЦИЯ: ${content}`;
+                        break;
+                    case 'warning':
+                        formattedContent = `⚠️ ВНИМАНИЕ: ${content}`;
+                        break;
+                    case 'announcement':
+                        formattedContent = `📢 ОБЪЯВЛЕНИЕ: ${content}`;
+                        break;
+                }
+                
+                this.messageManager.addMessage(
+                    this.userManager.currentUser.id,
+                    this.userManager.currentUser.username,
+                    formattedContent,
+                    true,
+                    messageType
+                );
+                
+                messageInput.value = '';
+                this.loadAdminMessages();
+                
+                // Показываем уведомление об успешной отправке
+                alert('Сообщение отправлено от имени администратора');
+            }
+            
+            // Бан пользователя
+            banUser(userId) {
+                const reason = prompt('Введите причину блокировки:');
+                if (reason === null) return; // Пользователь отменил ввод
+                
+                if (this.userManager.banUser(userId, reason)) {
+                    alert('Пользователь заблокирован');
+                    this.loadAdminUserList();
+                }
+            }
+            
+            // Разбан пользователя
+            unbanUser(userId) {
+                if (this.userManager.unbanUser(userId)) {
+                    alert('Пользователь разблокирован');
+                    this.loadAdminUserList();
+                }
+            }
+            
+            // Удаление пользователя
+            deleteUser(userId) {
+                if (confirm('Вы уверены, что хотите удалить этого пользователя?')) {
+                    this.userManager.deleteUser(userId);
+                    this.loadAdminUserList();
+                    this.updateStats();
+                }
+            }
+            
+            // Удаление сообщения
+            deleteMessage(messageId) {
+                this.messageManager.deleteMessage(messageId);
+                this.loadAdminMessages();
+                this.loadAdvertisementAlerts();
+                
+                // Если мы в чате, также обновляем сообщения там
+                if (!this.userManager.currentUser.isAdmin) {
+                    this.loadMessages();
+                }
+            }
+            
+            // Удаление всех сообщений
+            clearAllMessages() {
+                if (confirm('Вы уверены, что хотите удалить все сообщения?')) {
+                    this.messageManager.clearAllMessages();
+                    this.loadAdminMessages();
+                    this.loadAdvertisementAlerts();
+                    
+                    // Если мы в чате, также обновляем сообщения там
+                    if (!this.userManager.currentUser.isAdmin) {
+                        this.loadMessages();
+                    }
+                }
+            }
+            
+            // Удаление всех рекламных сообщений
+            clearAdvertisementMessages() {
+                if (confirm('Вы уверены, что хотите удалить все рекламные сообщения?')) {
+                    this.messageManager.clearAdvertisementMessages();
+                    this.loadAdminMessages();
+                    this.loadAdvertisementAlerts();
+                    
+                    // Если мы в чате, также обновляем сообщения там
+                    if (!this.userManager.currentUser.isAdmin) {
+                        this.loadMessages();
+                    }
+                }
+            }
+            
+            // Выход из системы
+            handleLogout() {
+                this.userManager.logout();
+                this.showScreen('welcome-screen');
+            }
+            
+            // Экранирование HTML
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        }
+
+        // Инициализация приложения после загрузки DOM
+        document.addEventListener('DOMContentLoaded', () => {
+            new ChatApp();
+        });
+    </script>
+</body>
+</html>
