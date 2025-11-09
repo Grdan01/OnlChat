@@ -155,6 +155,12 @@
             border-color: #7d3c98;
         }
         
+        .btn-premium {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            border-color: #daa520;
+            color: #000;
+        }
+        
         .form-group {
             margin-bottom: 25px;
         }
@@ -208,6 +214,24 @@
         .private-message {
             background: rgba(30, 60, 50, 0.6);
             border-left: 4px solid #27ae60;
+        }
+        
+        .premium-user {
+            font-weight: bold;
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .premium-badge {
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            color: #000;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin-left: 5px;
         }
         
         .chat-container {
@@ -539,6 +563,7 @@
             gap: 10px;
             margin-bottom: 15px;
             flex-wrap: wrap;
+            justify-content: center;
         }
         
         .sticker {
@@ -665,6 +690,22 @@
             cursor: pointer;
             font-size: 0.8rem;
             padding: 2px 5px;
+        }
+        
+        .password-display {
+            font-family: monospace;
+            background: rgba(0,0,0,0.3);
+            padding: 2px 5px;
+            border-radius: 3px;
+            margin-left: 5px;
+        }
+        
+        .show-password-btn {
+            background: transparent;
+            border: 1px solid #555;
+            padding: 2px 6px;
+            font-size: 0.7rem;
+            margin-left: 5px;
         }
     </style>
 </head>
@@ -830,6 +871,18 @@
                         <div class="sticker" data-sticker="🔥">🔥</div>
                         <div class="sticker" data-sticker="✅">✅</div>
                         <div class="sticker" data-sticker="❌">❌</div>
+                        <div class="sticker" data-sticker="❤️">❤️</div>
+                        <div class="sticker" data-sticker="😂">😂</div>
+                        <div class="sticker" data-sticker="😍">😍</div>
+                        <div class="sticker" data-sticker="🤔">🤔</div>
+                        <div class="sticker" data-sticker="👏">👏</div>
+                        <div class="sticker" data-sticker="🙏">🙏</div>
+                        <div class="sticker" data-sticker="💯">💯</div>
+                        <div class="sticker" data-sticker="🚀">🚀</div>
+                        <div class="sticker" data-sticker="⭐">⭐</div>
+                        <div class="sticker" data-sticker="🎯">🎯</div>
+                        <div class="sticker" data-sticker="🏆">🏆</div>
+                        <div class="sticker" data-sticker="👑">👑</div>
                     </div>
                     
                     <div class="form-group">
@@ -1007,6 +1060,45 @@
                 this.users = JSON.parse(localStorage.getItem('chatUsers')) || [];
                 this.currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
                 this.adminPassword = 'admin228';
+                // Инициализация демо-пользователей если их нет
+                if (this.users.length === 0) {
+                    this.initializeDemoUsers();
+                }
+            }
+            
+            // Инициализация демо-пользователей
+            initializeDemoUsers() {
+                const demoUsers = [
+                    {
+                        id: '1',
+                        username: 'user1',
+                        email: 'user1@example.com',
+                        password: 'password1',
+                        isOnline: false,
+                        isAdmin: false,
+                        isBanned: false,
+                        isPremium: false,
+                        banReason: '',
+                        registrationDate: new Date().toISOString(),
+                        lastLogin: new Date().toISOString()
+                    },
+                    {
+                        id: '2', 
+                        username: 'user2',
+                        email: 'user2@example.com',
+                        password: 'password2',
+                        isOnline: false,
+                        isAdmin: false,
+                        isBanned: false,
+                        isPremium: true,
+                        banReason: '',
+                        registrationDate: new Date().toISOString(),
+                        lastLogin: new Date().toISOString()
+                    }
+                ];
+                
+                this.users = demoUsers;
+                this.saveUsers();
             }
             
             // Сохранение пользователей в localStorage
@@ -1034,6 +1126,7 @@
                     isOnline: true,
                     isAdmin: false,
                     isBanned: false,
+                    isPremium: false,
                     banReason: '',
                     registrationDate: new Date().toISOString(),
                     lastLogin: new Date().toISOString()
@@ -1088,7 +1181,8 @@
                     id: 'admin',
                     username: 'Системный администратор',
                     isOnline: true,
-                    isAdmin: true
+                    isAdmin: true,
+                    isPremium: true
                 };
                 
                 this.currentUser = adminUser;
@@ -1126,6 +1220,11 @@
                 return this.users.filter(user => user.isBanned);
             }
             
+            // Получение премиум пользователей
+            getPremiumUsers() {
+                return this.users.filter(user => user.isPremium);
+            }
+            
             // Бан пользователя
             banUser(userId, reason) {
                 const user = this.users.find(u => u.id === userId);
@@ -1151,6 +1250,17 @@
                 return false;
             }
             
+            // Выдача/снятие премиум статуса
+            togglePremium(userId) {
+                const user = this.users.find(u => u.id === userId);
+                if (user) {
+                    user.isPremium = !user.isPremium;
+                    this.saveUsers();
+                    return user.isPremium;
+                }
+                return false;
+            }
+            
             // Удаление пользователя
             deleteUser(userId) {
                 this.users = this.users.filter(user => user.id !== userId);
@@ -1169,6 +1279,42 @@
                     'реклама', 'заказать', 'цена', 'магазин', 'интернет-магазин', 'доставка',
                     'оптом', 'розница', 'распродажа', 'спецпредложение', 'промокод'
                 ];
+                
+                // Инициализация демо-сообщений если их нет
+                if (this.messages.length === 0) {
+                    this.initializeDemoMessages();
+                }
+            }
+            
+            // Инициализация демо-сообщений
+            initializeDemoMessages() {
+                const demoMessages = [
+                    {
+                        id: '1',
+                        userId: '1',
+                        username: 'user1',
+                        content: 'Привет всем! Это тестовое сообщение.',
+                        isAdminMessage: false,
+                        messageType: 'user',
+                        isAdvertisement: false,
+                        isSticker: false,
+                        timestamp: new Date(Date.now() - 3600000).toISOString()
+                    },
+                    {
+                        id: '2',
+                        userId: '2',
+                        username: 'user2',
+                        content: 'Привет! У меня премиум аккаунт! 👑',
+                        isAdminMessage: false,
+                        messageType: 'user',
+                        isAdvertisement: false,
+                        isSticker: false,
+                        timestamp: new Date(Date.now() - 1800000).toISOString()
+                    }
+                ];
+                
+                this.messages = demoMessages;
+                this.saveData();
             }
             
             // Сохранение данных в localStorage
@@ -1179,7 +1325,7 @@
             }
             
             // Добавление нового сообщения
-            addMessage(userId, username, content, isAdminMessage = false, messageType = 'user', imageData = null) {
+            addMessage(userId, username, content, isAdminMessage = false, messageType = 'user', imageData = null, isPremium = false) {
                 // Проверка на рекламу
                 const isAdvertisement = this.checkForAdvertisement(content);
                 
@@ -1193,6 +1339,7 @@
                     isAdvertisement,
                     isSticker: this.isSticker(content),
                     imageData: imageData,
+                    isPremium: isPremium,
                     timestamp: new Date().toISOString()
                 };
                 
@@ -1233,7 +1380,7 @@
             }
             
             // Добавление личного сообщения
-            addPrivateMessage(senderId, senderName, recipientId, recipientName, content, imageData = null) {
+            addPrivateMessage(senderId, senderName, recipientId, recipientName, content, imageData = null, isPremium = false) {
                 const newMessage = {
                     id: Date.now().toString(),
                     senderId,
@@ -1243,6 +1390,7 @@
                     content,
                     isSticker: this.isSticker(content),
                     imageData: imageData,
+                    isPremium: isPremium,
                     timestamp: new Date().toISOString()
                 };
                 
@@ -1366,6 +1514,21 @@
                 this.checkAuthStatus();
                 this.setupTabs();
                 this.setupChatTypes();
+                this.startAutoRefresh();
+            }
+            
+            // Автообновление сообщений
+            startAutoRefresh() {
+                setInterval(() => {
+                    if (this.userManager.currentUser) {
+                        if (this.currentChatType === 'public') {
+                            this.loadMessages();
+                        } else if (this.currentChatType === 'private' && this.currentPrivateRecipient) {
+                            this.loadPrivateMessages();
+                        }
+                        this.loadOnlineUsers();
+                    }
+                }, 2000); // Обновление каждые 2 секунды
             }
             
             // Привязка событий
@@ -1481,6 +1644,7 @@
                         if (chatType === 'public') {
                             document.getElementById('public-chat').classList.remove('hidden');
                             this.currentChatType = 'public';
+                            this.loadMessages();
                         } else {
                             document.getElementById('private-chat').classList.remove('hidden');
                             this.currentChatType = 'private';
@@ -1646,11 +1810,6 @@
                 document.getElementById('current-user').textContent = this.userManager.currentUser.username;
                 this.loadMessages();
                 this.loadOnlineUsers();
-                
-                // Обновление списка пользователей каждые 5 секунд
-                setInterval(() => {
-                    this.loadOnlineUsers();
-                }, 5000);
             }
             
             // Отображение админ-панели
@@ -1659,13 +1818,6 @@
                 this.updateStats();
                 this.loadAdminUserList();
                 this.loadAdminMessages();
-                
-                // Обновление данных каждые 5 секунд
-                setInterval(() => {
-                    this.updateStats();
-                    this.loadAdminUserList();
-                    this.loadAdminMessages();
-                }, 5000);
             }
             
             // Обновление статистики
@@ -1698,8 +1850,8 @@
                 messageElement.className = 'message';
                 messageElement.dataset.messageId = message.id;
                 
-                if ((!isPrivate && message.userId === this.userManager.currentUser.id) || 
-                    (isPrivate && message.senderId === this.userManager.currentUser.id)) {
+                if ((!isPrivate && message.userId === this.userManager.currentUser?.id) || 
+                    (isPrivate && message.senderId === this.userManager.currentUser?.id)) {
                     messageElement.classList.add('my-message');
                 } else if (message.isAdminMessage) {
                     messageElement.classList.add('admin-message');
@@ -1710,8 +1862,18 @@
                 }
                 
                 let headerText = isPrivate ? message.senderName : message.username;
+                
+                // Добавляем премиум бейдж если пользователь премиум
+                const user = this.userManager.users.find(u => 
+                    isPrivate ? u.id === message.senderId : u.id === message.userId
+                );
+                
+                if (user && user.isPremium) {
+                    headerText = `<span class="premium-user">${headerText}</span> <span class="premium-badge">PREMIUM 👑</span>`;
+                }
+                
                 if (message.isAdminMessage) headerText += ' (Система)';
-                if (isPrivate && message.senderId !== this.userManager.currentUser.id) {
+                if (isPrivate && message.senderId !== this.userManager.currentUser?.id) {
                     headerText += ' → вам';
                 } else if (isPrivate) {
                     headerText += ' → ' + message.recipientName;
@@ -1723,7 +1885,12 @@
                 } else if (message.isSticker) {
                     content = `<div class="sticker-message">${message.content}</div>`;
                 } else {
-                    content = `<div class="message-content">${this.escapeHtml(message.content)}</div>`;
+                    // Применяем премиум стиль к тексту сообщения если пользователь премиум
+                    if (user && user.isPremium) {
+                        content = `<div class="message-content premium-user">${this.escapeHtml(message.content)}</div>`;
+                    } else {
+                        content = `<div class="message-content">${this.escapeHtml(message.content)}</div>`;
+                    }
                 }
                 
                 if (message.edited) {
@@ -1739,8 +1906,8 @@
                 `;
                 
                 // Добавляем кнопку жалобы для чужих сообщений
-                if ((!isPrivate && message.userId !== this.userManager.currentUser.id && !message.isAdminMessage) || 
-                    (isPrivate && message.senderId !== this.userManager.currentUser.id)) {
+                if ((!isPrivate && message.userId !== this.userManager.currentUser?.id && !message.isAdminMessage) || 
+                    (isPrivate && message.senderId !== this.userManager.currentUser?.id)) {
                     const reportButton = document.createElement('button');
                     reportButton.className = 'report-button';
                     reportButton.textContent = 'Пожаловаться';
@@ -1754,8 +1921,8 @@
                 }
                 
                 // Добавляем кнопки управления для своих сообщений
-                if ((!isPrivate && message.userId === this.userManager.currentUser.id) || 
-                    (isPrivate && message.senderId === this.userManager.currentUser.id)) {
+                if ((!isPrivate && message.userId === this.userManager.currentUser?.id) || 
+                    (isPrivate && message.senderId === this.userManager.currentUser?.id)) {
                     const messageControls = document.createElement('div');
                     messageControls.className = 'message-controls';
                     messageControls.innerHTML = `
@@ -1787,14 +1954,15 @@
                 usersContainer.innerHTML = '';
                 
                 allUsers.forEach(user => {
-                    if (user.id === this.userManager.currentUser.id) return;
+                    if (user.id === this.userManager.currentUser?.id) return;
                     
                     const userElement = document.createElement('li');
                     const indicator = user.isOnline ? 'online-indicator' : 'offline-indicator';
                     const status = user.isOnline ? 'Онлайн' : 'Оффлайн';
+                    const premiumBadge = user.isPremium ? ' <span class="premium-badge">PREMIUM 👑</span>' : '';
                     
                     userElement.innerHTML = `
-                        <span><span class="${indicator}"></span>${user.username} (${status})</span>
+                        <span><span class="${indicator}"></span>${user.username} (${status})${premiumBadge}</span>
                         ${user.isAdmin ? '<span class="admin-badge">Админ</span>' : ''}
                         ${user.isBanned ? '<span class="banned-badge">Заблокирован</span>' : ''}
                     `;
@@ -1810,11 +1978,12 @@
                 recipientSelect.innerHTML = '<option value="">Выберите получателя</option>';
                 
                 allUsers.forEach(user => {
-                    if (user.id === this.userManager.currentUser.id || user.isBanned) return;
+                    if (user.id === this.userManager.currentUser?.id || user.isBanned) return;
                     
                     const option = document.createElement('option');
                     option.value = user.id;
-                    option.textContent = user.username + (user.isAdmin ? ' (Админ)' : '') + (user.isOnline ? ' (Онлайн)' : ' (Оффлайн)');
+                    const premiumBadge = user.isPremium ? ' (PREMIUM 👑)' : '';
+                    option.textContent = user.username + premiumBadge + (user.isOnline ? ' (Онлайн)' : ' (Оффлайн)');
                     recipientSelect.appendChild(option);
                 });
             }
@@ -1860,15 +2029,17 @@
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     const imageData = e.target.result;
+                    const user = this.userManager.currentUser;
                     
                     if (chatType === 'public') {
                         this.messageManager.addMessage(
-                            this.userManager.currentUser.id,
-                            this.userManager.currentUser.username,
+                            user.id,
+                            user.username,
                             'Изображение',
                             false,
                             'user',
-                            imageData
+                            imageData,
+                            user.isPremium
                         );
                         this.loadMessages();
                     } else {
@@ -1879,12 +2050,13 @@
                         
                         const recipient = this.userManager.users.find(u => u.id === this.currentPrivateRecipient);
                         this.messageManager.addPrivateMessage(
-                            this.userManager.currentUser.id,
-                            this.userManager.currentUser.username,
+                            user.id,
+                            user.username,
                             this.currentPrivateRecipient,
                             recipient.username,
                             'Изображение',
-                            imageData
+                            imageData,
+                            user.isPremium
                         );
                         this.loadPrivateMessages();
                     }
@@ -1901,10 +2073,15 @@
                 
                 if (!content) return;
                 
+                const user = this.userManager.currentUser;
                 this.messageManager.addMessage(
-                    this.userManager.currentUser.id,
-                    this.userManager.currentUser.username,
-                    content
+                    user.id,
+                    user.username,
+                    content,
+                    false,
+                    'user',
+                    null,
+                    user.isPremium
                 );
                 
                 messageInput.value = '';
@@ -1913,10 +2090,15 @@
             
             // Отправка стикера
             sendSticker(sticker) {
+                const user = this.userManager.currentUser;
                 this.messageManager.addMessage(
-                    this.userManager.currentUser.id,
-                    this.userManager.currentUser.username,
-                    sticker
+                    user.id,
+                    user.username,
+                    sticker,
+                    false,
+                    'user',
+                    null,
+                    user.isPremium
                 );
                 
                 this.loadMessages();
@@ -1934,14 +2116,17 @@
                 
                 if (!content) return;
                 
+                const user = this.userManager.currentUser;
                 const recipient = this.userManager.users.find(u => u.id === this.currentPrivateRecipient);
                 
                 this.messageManager.addPrivateMessage(
-                    this.userManager.currentUser.id,
-                    this.userManager.currentUser.username,
+                    user.id,
+                    user.username,
                     this.currentPrivateRecipient,
                     recipient.username,
-                    content
+                    content,
+                    null,
+                    user.isPremium
                 );
                 
                 messageInput.value = '';
@@ -2034,17 +2219,26 @@
                         `<button class="btn-success unban-user" data-user-id="${user.id}">Разблокировать</button>` :
                         `<button class="btn-warning ban-user" data-user-id="${user.id}">Заблокировать</button>`;
                     
+                    const premiumButton = user.isPremium ?
+                        `<button class="btn-warning remove-premium" data-user-id="${user.id}">Снять Premium</button>` :
+                        `<button class="btn-premium give-premium" data-user-id="${user.id}">Выдать Premium</button>`;
+                    
                     userElement.innerHTML = `
                         <div>
                             <strong>${user.username}</strong> (${user.email})
                             <div>Зарегистрирован: ${new Date(user.registrationDate).toLocaleDateString()}</div>
+                            <div>Пароль: <span class="password-display">${user.password}</span>
+                                <button class="show-password-btn" data-password="${user.password}">👁️</button>
+                            </div>
                             ${user.isBanned ? `<div class="warning">Заблокирован. Причина: ${user.banReason}</div>` : ''}
+                            ${user.isPremium ? `<div class="success">PREMIUM пользователь 👑</div>` : ''}
                         </div>
                         <div>
                             <span style="color: ${user.isOnline ? '#2ecc71' : '#e74c3c'}">
                                 ${user.isOnline ? 'Онлайн' : 'Оффлайн'}
                             </span>
                             <div class="admin-controls">
+                                ${premiumButton}
                                 ${banButton}
                                 <button class="btn-danger delete-user" data-user-id="${user.id}">Удалить</button>
                             </div>
@@ -2068,10 +2262,31 @@
                     });
                 });
                 
+                document.querySelectorAll('.give-premium').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const userId = e.target.getAttribute('data-user-id');
+                        this.togglePremium(userId);
+                    });
+                });
+                
+                document.querySelectorAll('.remove-premium').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const userId = e.target.getAttribute('data-user-id');
+                        this.togglePremium(userId);
+                    });
+                });
+                
                 document.querySelectorAll('.delete-user').forEach(button => {
                     button.addEventListener('click', (e) => {
                         const userId = e.target.getAttribute('data-user-id');
                         this.deleteUser(userId);
+                    });
+                });
+                
+                document.querySelectorAll('.show-password-btn').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const password = e.target.getAttribute('data-password');
+                        alert(`Пароль пользователя: ${password}`);
                     });
                 });
             }
@@ -2351,6 +2566,15 @@
             unbanUser(userId) {
                 if (this.userManager.unbanUser(userId)) {
                     alert('Пользователь разблокирован');
+                    this.loadAdminUserList();
+                }
+            }
+            
+            // Выдача/снятие премиум статуса
+            togglePremium(userId) {
+                const isPremium = this.userManager.togglePremium(userId);
+                if (isPremium !== false) {
+                    alert(isPremium ? 'Premium статус выдан пользователю' : 'Premium статус снят с пользователя');
                     this.loadAdminUserList();
                 }
             }
