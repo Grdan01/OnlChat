@@ -707,6 +707,26 @@
             font-size: 0.7rem;
             margin-left: 5px;
         }
+        
+        .ban-time-controls {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        
+        .ban-time-controls input {
+            flex: 2;
+        }
+        
+        .ban-time-controls select {
+            flex: 1;
+        }
+        
+        .time-remaining {
+            font-size: 0.8rem;
+            color: #e67e22;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -1051,6 +1071,29 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Модальное окно блокировки -->
+        <div id="ban-modal" class="modal">
+            <div class="modal-content">
+                <h3>Блокировка пользователя</h3>
+                <div class="form-group">
+                    <input type="text" id="ban-reason" placeholder="Причина блокировки" required>
+                </div>
+                <div class="ban-time-controls">
+                    <input type="number" id="ban-duration" placeholder="Длительность" min="1" value="1" required>
+                    <select id="ban-time-unit">
+                        <option value="seconds">Секунды</option>
+                        <option value="minutes">Минуты</option>
+                        <option value="hours">Часы</option>
+                        <option value="days">Дни</option>
+                    </select>
+                </div>
+                <div class="modal-buttons">
+                    <button id="confirm-ban" class="btn-danger">Заблокировать</button>
+                    <button id="cancel-ban">Отмена</button>
+                </div>
+            </div>
+        </div>
     </div>
     
     <script>
@@ -1060,10 +1103,13 @@
                 this.users = JSON.parse(localStorage.getItem('chatUsers')) || [];
                 this.currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
                 this.adminPassword = 'admin228';
+                this.bannedUsers = JSON.parse(localStorage.getItem('bannedUsers')) || {};
                 // Инициализация демо-пользователей если их нет
                 if (this.users.length === 0) {
                     this.initializeDemoUsers();
                 }
+                // Запуск проверки блокировок
+                this.startBanChecker();
             }
             
             // Инициализация демо-пользователей
@@ -1104,6 +1150,72 @@
             // Сохранение пользователей в localStorage
             saveUsers() {
                 localStorage.setItem('chatUsers', JSON.stringify(this.users));
+                localStorage.setItem('bannedUsers', JSON.stringify(this.bannedUsers));
+            }
+            
+            // Проверка блокировок
+            startBanChecker() {
+                setInterval(() => {
+                    this.checkBans();
+                }, 1000); // Проверка каждую секунду
+            }
+            
+            // Проверка истекших блокировок
+            checkBans() {
+                const now = Date.now();
+                let updated = false;
+                
+                for (const userId in this.bannedUsers) {
+                    if (this.bannedUsers[userId].unbanTime <= now) {
+                        // Разблокировать пользователя
+                        const user = this.users.find(u => u.id === userId);
+                        if (user) {
+                            user.isBanned = false;
+                            user.banReason = '';
+                        }
+                        delete this.bannedUsers[userId];
+                        updated = true;
+                    }
+                }
+                
+                if (updated) {
+                    this.saveUsers();
+                    
+                    // Если текущий пользователь был разблокирован, обновить интерфейс
+                    if (this.currentUser && this.currentUser.id in this.bannedUsers === false) {
+                        const user = this.users.find(u => u.id === this.currentUser.id);
+                        if (user && !user.isBanned) {
+                            // Пользователь разблокирован
+                            if (window.chatApp) {
+                                window.chatApp.showChat();
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Получить оставшееся время блокировки
+            getBanTimeRemaining(userId) {
+                if (this.bannedUsers[userId]) {
+                    const remaining = this.bannedUsers[userId].unbanTime - Date.now();
+                    if (remaining > 0) {
+                        return remaining;
+                    }
+                }
+                return 0;
+            }
+            
+            // Форматирование времени
+            formatTimeRemaining(ms) {
+                const seconds = Math.floor(ms / 1000);
+                const minutes = Math.floor(seconds / 60);
+                const hours = Math.floor(minutes / 60);
+                const days = Math.floor(hours / 24);
+                
+                if (days > 0) return `${days}д ${hours % 24}ч ${minutes % 60}м`;
+                if (hours > 0) return `${hours}ч ${minutes % 60}м ${seconds % 60}с`;
+                if (minutes > 0) return `${minutes}м ${seconds % 60}с`;
+                return `${seconds}с`;
             }
             
             // Регистрация нового пользователя
@@ -1146,7 +1258,17 @@
                     return { success: false, message: 'Неверное имя пользователя или пароль' };
                 }
                 
-                if (user.isBanned) {
+                // Проверка временной блокировки
+                const banTimeRemaining = this.getBanTimeRemaining(user.id);
+                if (banTimeRemaining > 0) {
+                    return { 
+                        success: false, 
+                        message: `Ваш аккаунт заблокирован. Причина: ${user.banReason}. Разблокировка через: ${this.formatTimeRemaining(banTimeRemaining)}` 
+                    };
+                }
+                
+                // Проверка перманентной блокировки
+                if (user.isBanned && !this.bannedUsers[user.id]) {
                     return { success: false, message: `Ваш аккаунт заблокирован. Причина: ${user.banReason}` };
                 }
                 
@@ -1205,9 +1327,69 @@
                 localStorage.removeItem('currentUser');
             }
             
+            // Бан пользователя с временем
+            banUser(userId, reason, duration = 0, timeUnit = 'minutes') {
+                const user = this.users.find(u => u.id === userId);
+                if (!user) return false;
+                
+                let banDuration = 0;
+                switch (timeUnit) {
+                    case 'seconds':
+                        banDuration = duration * 1000;
+                        break;
+                    case 'minutes':
+                        banDuration = duration * 60 * 1000;
+                        break;
+                    case 'hours':
+                        banDuration = duration * 60 * 60 * 1000;
+                        break;
+                    case 'days':
+                        banDuration = duration * 24 * 60 * 60 * 1000;
+                        break;
+                }
+                
+                user.isBanned = true;
+                user.banReason = reason;
+                user.isOnline = false;
+                
+                if (banDuration > 0) {
+                    this.bannedUsers[userId] = {
+                        reason: reason,
+                        unbanTime: Date.now() + banDuration
+                    };
+                }
+                
+                this.saveUsers();
+                
+                // Если заблокирован текущий пользователь, выкинуть его
+                if (this.currentUser && this.currentUser.id === userId) {
+                    this.currentUser = null;
+                    localStorage.removeItem('currentUser');
+                    if (window.chatApp) {
+                        window.chatApp.showScreen('welcome-screen');
+                        alert(`Вы были заблокированы. Причина: ${reason}${banDuration > 0 ? `. Разблокировка через: ${this.formatTimeRemaining(banDuration)}` : ''}`);
+                    }
+                }
+                
+                return true;
+            }
+            
+            // Разбан пользователя
+            unbanUser(userId) {
+                const user = this.users.find(u => u.id === userId);
+                if (user) {
+                    user.isBanned = false;
+                    user.banReason = '';
+                    delete this.bannedUsers[userId];
+                    this.saveUsers();
+                    return true;
+                }
+                return false;
+            }
+            
             // Получение списка онлайн пользователей
             getOnlineUsers() {
-                return this.users.filter(user => user.isOnline && !user.isBanned);
+                return this.users.filter(user => user.isOnline && !user.isBanned && !this.getBanTimeRemaining(user.id));
             }
             
             // Получение всех пользователей
@@ -1217,37 +1399,12 @@
             
             // Получение забаненных пользователей
             getBannedUsers() {
-                return this.users.filter(user => user.isBanned);
+                return this.users.filter(user => user.isBanned || this.getBanTimeRemaining(user.id));
             }
             
             // Получение премиум пользователей
             getPremiumUsers() {
                 return this.users.filter(user => user.isPremium);
-            }
-            
-            // Бан пользователя
-            banUser(userId, reason) {
-                const user = this.users.find(u => u.id === userId);
-                if (user) {
-                    user.isBanned = true;
-                    user.banReason = reason;
-                    user.isOnline = false;
-                    this.saveUsers();
-                    return true;
-                }
-                return false;
-            }
-            
-            // Разбан пользователя
-            unbanUser(userId) {
-                const user = this.users.find(u => u.id === userId);
-                if (user) {
-                    user.isBanned = false;
-                    user.banReason = '';
-                    this.saveUsers();
-                    return true;
-                }
-                return false;
             }
             
             // Выдача/снятие премиум статуса
@@ -1264,6 +1421,7 @@
             // Удаление пользователя
             deleteUser(userId) {
                 this.users = this.users.filter(user => user.id !== userId);
+                delete this.bannedUsers[userId];
                 this.saveUsers();
             }
         }
@@ -1505,7 +1663,9 @@
                 this.messageManager = new MessageManager();
                 this.currentChatType = 'public';
                 this.currentPrivateRecipient = null;
+                this.banModalUserId = null;
                 this.init();
+                window.chatApp = this;
             }
             
             // Инициализация приложения
@@ -1528,7 +1688,7 @@
                         }
                         this.loadOnlineUsers();
                     }
-                }, 2000); // Обновление каждые 2 секунды
+                }, 1000); // Обновление каждую секунду
             }
             
             // Привязка событий
@@ -1592,9 +1752,11 @@
                     this.loadAdminPrivateMessages(e.target.value);
                 });
                 
-                // Модальное окно выхода
+                // Модальные окна
                 document.getElementById('confirm-logout').addEventListener('click', () => this.handleLogout());
                 document.getElementById('cancel-logout').addEventListener('click', () => this.hideLogoutModal());
+                document.getElementById('confirm-ban').addEventListener('click', () => this.confirmBan());
+                document.getElementById('cancel-ban').addEventListener('click', () => this.hideBanModal());
             }
             
             // Настройка вкладок
@@ -1683,6 +1845,39 @@
             // Скрыть модальное окно выхода
             hideLogoutModal() {
                 document.getElementById('logout-modal').style.display = 'none';
+            }
+            
+            // Показать модальное окно блокировки
+            showBanModal(userId) {
+                this.banModalUserId = userId;
+                document.getElementById('ban-modal').style.display = 'flex';
+                document.getElementById('ban-reason').value = '';
+                document.getElementById('ban-duration').value = '1';
+                document.getElementById('ban-time-unit').value = 'minutes';
+            }
+            
+            // Скрыть модальное окно блокировки
+            hideBanModal() {
+                document.getElementById('ban-modal').style.display = 'none';
+                this.banModalUserId = null;
+            }
+            
+            // Подтверждение блокировки
+            confirmBan() {
+                const reason = document.getElementById('ban-reason').value;
+                const duration = parseInt(document.getElementById('ban-duration').value);
+                const timeUnit = document.getElementById('ban-time-unit').value;
+                
+                if (!reason) {
+                    alert('Введите причину блокировки');
+                    return;
+                }
+                
+                if (this.userManager.banUser(this.banModalUserId, reason, duration, timeUnit)) {
+                    alert('Пользователь заблокирован');
+                    this.loadAdminUserList();
+                    this.hideBanModal();
+                }
             }
             
             // Обработка входа
@@ -2223,6 +2418,13 @@
                         `<button class="btn-warning remove-premium" data-user-id="${user.id}">Снять Premium</button>` :
                         `<button class="btn-premium give-premium" data-user-id="${user.id}">Выдать Premium</button>`;
                     
+                    // Получаем информацию о времени блокировки
+                    let banInfo = '';
+                    const banTimeRemaining = this.userManager.getBanTimeRemaining(user.id);
+                    if (banTimeRemaining > 0) {
+                        banInfo = `<div class="time-remaining">Разблокировка через: ${this.userManager.formatTimeRemaining(banTimeRemaining)}</div>`;
+                    }
+                    
                     userElement.innerHTML = `
                         <div>
                             <strong>${user.username}</strong> (${user.email})
@@ -2231,6 +2433,7 @@
                                 <button class="show-password-btn" data-password="${user.password}">👁️</button>
                             </div>
                             ${user.isBanned ? `<div class="warning">Заблокирован. Причина: ${user.banReason}</div>` : ''}
+                            ${banInfo}
                             ${user.isPremium ? `<div class="success">PREMIUM пользователь 👑</div>` : ''}
                         </div>
                         <div>
@@ -2251,7 +2454,7 @@
                 document.querySelectorAll('.ban-user').forEach(button => {
                     button.addEventListener('click', (e) => {
                         const userId = e.target.getAttribute('data-user-id');
-                        this.banUser(userId);
+                        this.showBanModal(userId);
                     });
                 });
                 
@@ -2384,7 +2587,7 @@
                 document.querySelectorAll('.ban-user').forEach(button => {
                     button.addEventListener('click', (e) => {
                         const userId = e.target.getAttribute('data-user-id');
-                        this.banUser(userId);
+                        this.showBanModal(userId);
                     });
                 });
                 
@@ -2549,17 +2752,6 @@
                 
                 // Показываем уведомление об успешной отправке
                 alert('Системное уведомление отправлено');
-            }
-            
-            // Бан пользователя
-            banUser(userId) {
-                const reason = prompt('Введите причину блокировки:');
-                if (reason === null) return; // Пользователь отменил ввод
-                
-                if (this.userManager.banUser(userId, reason)) {
-                    alert('Пользователь заблокирован');
-                    this.loadAdminUserList();
-                }
             }
             
             // Разбан пользователя
