@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Онлайн Чат</title>
+    <title>Онлайн Чат с Серверным Хранилищем</title>
+    <!-- Подключаем Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
     <style>
         * {
             margin: 0;
@@ -293,6 +297,12 @@
             margin-top: 10px;
             font-size: 14px;
         }
+
+        .loading {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+        }
     </style>
 </head>
 <body>
@@ -356,14 +366,14 @@
         <!-- Основной интерфейс чата -->
         <div class="chat-container" id="chatContainer">
             <div class="chat-header">
-                <h2>Онлайн Чат</h2>
+                <h2>Онлайн Чат (Серверное хранилище)</h2>
                 <div class="user-info">
                     <span id="currentUser">Пользователь</span>
                     <button class="logout-btn" id="logoutBtn">Выйти</button>
                 </div>
             </div>
             <div class="chat-messages" id="chatMessages">
-                <!-- Сообщения будут добавляться здесь -->
+                <div class="loading">Загрузка сообщений...</div>
             </div>
             <div class="chat-input">
                 <input type="text" id="messageInput" placeholder="Введите сообщение...">
@@ -383,13 +393,15 @@
             <div class="admin-content">
                 <div class="admin-section">
                     <h3>Управление пользователями</h3>
-                    <ul class="user-list" id="userList">
+                    <div class="loading">Загрузка пользователей...</div>
+                    <ul class="user-list" id="userList" style="display: none;">
                         <!-- Список пользователей будет здесь -->
                     </ul>
                 </div>
                 <div class="admin-section">
                     <h3>Управление сообщениями</h3>
-                    <ul class="message-list" id="messageList">
+                    <div class="loading">Загрузка сообщений...</div>
+                    <ul class="message-list" id="messageList" style="display: none;">
                         <!-- Список сообщений будет здесь -->
                     </ul>
                 </div>
@@ -398,15 +410,22 @@
     </div>
 
     <script>
-        // Инициализация данных в localStorage, если они отсутствуют
-        if (!localStorage.getItem('chatUsers')) {
-            localStorage.setItem('chatUsers', JSON.stringify([]));
-        }
-        
-        if (!localStorage.getItem('chatMessages')) {
-            localStorage.setItem('chatMessages', JSON.stringify([]));
-        }
-        
+        // Конфигурация Firebase (замените на свою конфигурацию)
+        const firebaseConfig = {
+            apiKey: "AIzaSyC4wGk6h7a6c8Y5Y5Y5Y5Y5Y5Y5Y5Y5Y5Y5Y",
+            authDomain: "online-chat-demo.firebaseapp.com",
+            databaseURL: "https://online-chat-demo-default-rtdb.firebaseio.com",
+            projectId: "online-chat-demo",
+            storageBucket: "online-chat-demo.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abc123def456"
+        };
+
+        // Инициализация Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const auth = firebase.auth();
+
         // Элементы DOM
         const authContainer = document.getElementById('authContainer');
         const loginForm = document.getElementById('loginForm');
@@ -446,10 +465,12 @@
         
         const userList = document.getElementById('userList');
         const messageList = document.getElementById('messageList');
-        
+
         // Текущий пользователь
         let currentUserData = null;
-        
+        let messagesRef = null;
+        let usersRef = null;
+
         // Показать форму регистрации
         showRegister.addEventListener('click', () => {
             loginForm.style.display = 'none';
@@ -491,7 +512,7 @@
         }
         
         // Регистрация пользователя
-        registerBtn.addEventListener('click', () => {
+        registerBtn.addEventListener('click', async () => {
             const username = registerUsername.value.trim();
             const password = registerPassword.value;
             const confirmPassword = registerConfirmPassword.value;
@@ -511,42 +532,48 @@
                 return;
             }
             
-            const users = JSON.parse(localStorage.getItem('chatUsers'));
-            
-            // Проверка на существующего пользователя
-            if (users.find(user => user.username === username)) {
-                registerError.textContent = 'Пользователь с таким именем уже существует';
-                return;
+            try {
+                // Проверяем, существует ли пользователь с таким именем
+                const usersSnapshot = await database.ref('users').orderByChild('username').equalTo(username).once('value');
+                
+                if (usersSnapshot.exists()) {
+                    registerError.textContent = 'Пользователь с таким именем уже существует';
+                    return;
+                }
+                
+                // Создаем пользователя в Firebase Authentication
+                const userCredential = await auth.createUserWithEmailAndPassword(`${username}@chat.com`, password);
+                const user = userCredential.user;
+                
+                // Сохраняем дополнительную информацию о пользователе
+                await database.ref('users/' + user.uid).set({
+                    username: username,
+                    registrationDate: new Date().toISOString(),
+                    email: `${username}@chat.com`
+                });
+                
+                registerError.textContent = '';
+                registerSuccess.textContent = 'Регистрация прошла успешно! Теперь вы можете войти.';
+                
+                // Очистка полей формы
+                registerUsername.value = '';
+                registerPassword.value = '';
+                registerConfirmPassword.value = '';
+                
+                // Автоматический переход к форме входа
+                setTimeout(() => {
+                    loginForm.style.display = 'block';
+                    registerForm.style.display = 'none';
+                    registerSuccess.textContent = '';
+                }, 2000);
+                
+            } catch (error) {
+                registerError.textContent = 'Ошибка регистрации: ' + error.message;
             }
-            
-            // Добавление нового пользователя
-            users.push({
-                id: Date.now().toString(),
-                username: username,
-                password: password, // В реальном приложении пароль должен хешироваться
-                registrationDate: new Date().toISOString()
-            });
-            
-            localStorage.setItem('chatUsers', JSON.stringify(users));
-            
-            registerError.textContent = '';
-            registerSuccess.textContent = 'Регистрация прошла успешно! Теперь вы можете войти.';
-            
-            // Очистка полей формы
-            registerUsername.value = '';
-            registerPassword.value = '';
-            registerConfirmPassword.value = '';
-            
-            // Автоматический переход к форме входа
-            setTimeout(() => {
-                loginForm.style.display = 'block';
-                registerForm.style.display = 'none';
-                registerSuccess.textContent = '';
-            }, 2000);
         });
         
         // Вход пользователя
-        loginBtn.addEventListener('click', () => {
+        loginBtn.addEventListener('click', async () => {
             const username = loginUsername.value.trim();
             const password = loginPassword.value;
             
@@ -555,29 +582,47 @@
                 return;
             }
             
-            const users = JSON.parse(localStorage.getItem('chatUsers'));
-            const user = users.find(u => u.username === username && u.password === password);
-            
-            if (!user) {
+            try {
+                // Вход через Firebase Authentication
+                const userCredential = await auth.signInWithEmailAndPassword(`${username}@chat.com`, password);
+                const user = userCredential.user;
+                
+                // Получаем данные пользователя из базы данных
+                const userSnapshot = await database.ref('users/' + user.uid).once('value');
+                const userData = userSnapshot.val();
+                
+                if (!userData) {
+                    loginError.textContent = 'Данные пользователя не найдены';
+                    return;
+                }
+                
+                // Успешный вход
+                currentUserData = {
+                    uid: user.uid,
+                    ...userData
+                };
+                
+                currentUser.textContent = currentUserData.username;
+                
+                // Переход к чату
+                authContainer.style.display = 'none';
+                chatContainer.style.display = 'flex';
+                
+                // Инициализация ссылок на данные
+                messagesRef = database.ref('messages');
+                usersRef = database.ref('users');
+                
+                // Загрузка сообщений
+                loadMessages();
+                
+                // Очистка полей формы
+                loginUsername.value = '';
+                loginPassword.value = '';
+                loginError.textContent = '';
+                
+            } catch (error) {
                 loginError.textContent = 'Неверное имя пользователя или пароль';
-                return;
             }
-            
-            // Успешный вход
-            currentUserData = user;
-            currentUser.textContent = user.username;
-            
-            // Переход к чату
-            authContainer.style.display = 'none';
-            chatContainer.style.display = 'flex';
-            
-            // Загрузка сообщений
-            loadMessages();
-            
-            // Очистка полей формы
-            loginUsername.value = '';
-            loginPassword.value = '';
-            loginError.textContent = '';
         });
         
         // Вход администратора
@@ -588,6 +633,10 @@
                 // Успешный вход в админ-панель
                 authContainer.style.display = 'none';
                 adminContainer.style.display = 'flex';
+                
+                // Инициализация ссылок на данные
+                messagesRef = database.ref('messages');
+                usersRef = database.ref('users');
                 
                 // Загрузка данных для админ-панели
                 loadAdminData();
@@ -602,6 +651,7 @@
         
         // Выход из чата
         logoutBtn.addEventListener('click', () => {
+            auth.signOut();
             currentUserData = null;
             chatContainer.style.display = 'none';
             authContainer.style.display = 'flex';
@@ -610,7 +660,7 @@
             adminAuthForm.style.display = 'none';
             
             // Очистка сообщений чата
-            chatMessages.innerHTML = '';
+            chatMessages.innerHTML = '<div class="loading">Загрузка сообщений...</div>';
         });
         
         // Выход из админ-панели
@@ -632,158 +682,194 @@
             }
         });
         
-        function sendMessage() {
+        async function sendMessage() {
             const messageText = messageInput.value.trim();
             
-            if (!messageText) return;
+            if (!messageText || !currentUserData) return;
             
-            const messages = JSON.parse(localStorage.getItem('chatMessages'));
-            
-            messages.push({
-                id: Date.now().toString(),
-                userId: currentUserData.id,
-                username: currentUserData.username,
-                text: messageText,
-                timestamp: new Date().toISOString()
-            });
-            
-            localStorage.setItem('chatMessages', JSON.stringify(messages));
-            
-            // Очистка поля ввода
-            messageInput.value = '';
-            
-            // Обновление отображения сообщений
-            loadMessages();
-        }
-        
-        // Загрузка сообщений
-        function loadMessages() {
-            const messages = JSON.parse(localStorage.getItem('chatMessages'));
-            chatMessages.innerHTML = '';
-            
-            messages.forEach(message => {
-                const messageElement = document.createElement('div');
-                messageElement.className = `message ${message.userId === currentUserData.id ? 'own' : 'other'}`;
-                
-                const messageHeader = document.createElement('div');
-                messageHeader.className = 'message-header';
-                
-                const sender = document.createElement('span');
-                sender.className = 'message-sender';
-                sender.textContent = message.username;
-                
-                const time = document.createElement('span');
-                time.className = 'message-time';
-                time.textContent = new Date(message.timestamp).toLocaleTimeString();
-                
-                messageHeader.appendChild(sender);
-                messageHeader.appendChild(time);
-                
-                const messageText = document.createElement('div');
-                messageText.textContent = message.text;
-                
-                messageElement.appendChild(messageHeader);
-                messageElement.appendChild(messageText);
-                
-                chatMessages.appendChild(messageElement);
-            });
-            
-            // Прокрутка к последнему сообщению
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-        
-        // Загрузка данных для админ-панели
-        function loadAdminData() {
-            // Загрузка пользователей
-            const users = JSON.parse(localStorage.getItem('chatUsers'));
-            userList.innerHTML = '';
-            
-            users.forEach(user => {
-                const userItem = document.createElement('li');
-                userItem.className = 'user-item';
-                
-                const userInfo = document.createElement('div');
-                userInfo.innerHTML = `
-                    <strong>${user.username}</strong>
-                    <small>Зарегистрирован: ${new Date(user.registrationDate).toLocaleDateString()}</small>
-                `;
-                
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'delete-btn';
-                deleteBtn.textContent = 'Удалить';
-                deleteBtn.addEventListener('click', () => {
-                    if (confirm(`Вы уверены, что хотите удалить пользователя ${user.username}?`)) {
-                        deleteUser(user.id);
-                    }
+            try {
+                await messagesRef.push({
+                    userId: currentUserData.uid,
+                    username: currentUserData.username,
+                    text: messageText,
+                    timestamp: new Date().toISOString()
                 });
                 
-                userItem.appendChild(userInfo);
-                userItem.appendChild(deleteBtn);
+                // Очистка поля ввода
+                messageInput.value = '';
                 
-                userList.appendChild(userItem);
+            } catch (error) {
+                console.error('Ошибка отправки сообщения:', error);
+            }
+        }
+        
+        // Загрузка сообщений в реальном времени
+        function loadMessages() {
+            chatMessages.innerHTML = '<div class="loading">Загрузка сообщений...</div>';
+            
+            messagesRef.orderByChild('timestamp').on('value', (snapshot) => {
+                const messages = snapshot.val();
+                chatMessages.innerHTML = '';
+                
+                if (!messages) {
+                    chatMessages.innerHTML = '<div class="loading">Нет сообщений</div>';
+                    return;
+                }
+                
+                // Преобразуем объект в массив и сортируем по времени
+                const messagesArray = Object.entries(messages).map(([id, message]) => ({
+                    id,
+                    ...message
+                })).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                
+                messagesArray.forEach(message => {
+                    const messageElement = document.createElement('div');
+                    messageElement.className = `message ${message.userId === currentUserData.uid ? 'own' : 'other'}`;
+                    
+                    const messageHeader = document.createElement('div');
+                    messageHeader.className = 'message-header';
+                    
+                    const sender = document.createElement('span');
+                    sender.className = 'message-sender';
+                    sender.textContent = message.username;
+                    
+                    const time = document.createElement('span');
+                    time.className = 'message-time';
+                    time.textContent = new Date(message.timestamp).toLocaleTimeString();
+                    
+                    messageHeader.appendChild(sender);
+                    messageHeader.appendChild(time);
+                    
+                    const messageText = document.createElement('div');
+                    messageText.textContent = message.text;
+                    
+                    messageElement.appendChild(messageHeader);
+                    messageElement.appendChild(messageText);
+                    
+                    chatMessages.appendChild(messageElement);
+                });
+                
+                // Прокрутка к последнему сообщению
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            });
+        }
+        
+        // Загрузка данных для админ-панели в реальном времени
+        function loadAdminData() {
+            // Загрузка пользователей
+            usersRef.on('value', (snapshot) => {
+                const users = snapshot.val();
+                const userListElement = document.getElementById('userList');
+                const userLoading = userListElement.previousElementSibling;
+                
+                if (!users) {
+                    userLoading.textContent = 'Нет пользователей';
+                    userListElement.style.display = 'none';
+                    return;
+                }
+                
+                userLoading.style.display = 'none';
+                userListElement.style.display = 'block';
+                userListElement.innerHTML = '';
+                
+                Object.entries(users).forEach(([userId, user]) => {
+                    const userItem = document.createElement('li');
+                    userItem.className = 'user-item';
+                    
+                    const userInfo = document.createElement('div');
+                    userInfo.innerHTML = `
+                        <strong>${user.username}</strong>
+                        <small>Зарегистрирован: ${new Date(user.registrationDate).toLocaleDateString()}</small>
+                    `;
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'delete-btn';
+                    deleteBtn.textContent = 'Удалить';
+                    deleteBtn.addEventListener('click', () => {
+                        if (confirm(`Вы уверены, что хотите удалить пользователя ${user.username}?`)) {
+                            deleteUser(userId);
+                        }
+                    });
+                    
+                    userItem.appendChild(userInfo);
+                    userItem.appendChild(deleteBtn);
+                    
+                    userListElement.appendChild(userItem);
+                });
             });
             
             // Загрузка сообщений
-            const messages = JSON.parse(localStorage.getItem('chatMessages'));
-            messageList.innerHTML = '';
-            
-            messages.forEach(message => {
-                const messageItem = document.createElement('li');
-                messageItem.className = 'message-item';
+            messagesRef.on('value', (snapshot) => {
+                const messages = snapshot.val();
+                const messageListElement = document.getElementById('messageList');
+                const messageLoading = messageListElement.previousElementSibling;
                 
-                const messageInfo = document.createElement('div');
-                messageInfo.innerHTML = `
-                    <strong>${message.username}</strong>: ${message.text}
-                    <br><small>${new Date(message.timestamp).toLocaleString()}</small>
-                `;
+                if (!messages) {
+                    messageLoading.textContent = 'Нет сообщений';
+                    messageListElement.style.display = 'none';
+                    return;
+                }
                 
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'delete-btn';
-                deleteBtn.textContent = 'Удалить';
-                deleteBtn.addEventListener('click', () => {
-                    if (confirm('Вы уверены, что хотите удалить это сообщение?')) {
-                        deleteMessage(message.id);
-                    }
+                messageLoading.style.display = 'none';
+                messageListElement.style.display = 'block';
+                messageListElement.innerHTML = '';
+                
+                Object.entries(messages).forEach(([messageId, message]) => {
+                    const messageItem = document.createElement('li');
+                    messageItem.className = 'message-item';
+                    
+                    const messageInfo = document.createElement('div');
+                    messageInfo.innerHTML = `
+                        <strong>${message.username}</strong>: ${message.text}
+                        <br><small>${new Date(message.timestamp).toLocaleString()}</small>
+                    `;
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'delete-btn';
+                    deleteBtn.textContent = 'Удалить';
+                    deleteBtn.addEventListener('click', () => {
+                        if (confirm('Вы уверены, что хотите удалить это сообщение?')) {
+                            deleteMessage(messageId);
+                        }
+                    });
+                    
+                    messageItem.appendChild(messageInfo);
+                    messageItem.appendChild(deleteBtn);
+                    
+                    messageListElement.appendChild(messageItem);
                 });
-                
-                messageItem.appendChild(messageInfo);
-                messageItem.appendChild(deleteBtn);
-                
-                messageList.appendChild(messageItem);
             });
         }
         
         // Удаление пользователя
-        function deleteUser(userId) {
-            let users = JSON.parse(localStorage.getItem('chatUsers'));
-            users = users.filter(user => user.id !== userId);
-            localStorage.setItem('chatUsers', JSON.stringify(users));
-            
-            // Также удаляем сообщения этого пользователя
-            let messages = JSON.parse(localStorage.getItem('chatMessages'));
-            messages = messages.filter(message => message.userId !== userId);
-            localStorage.setItem('chatMessages', JSON.stringify(messages));
-            
-            // Обновляем админ-панель
-            loadAdminData();
+        async function deleteUser(userId) {
+            try {
+                // Удаляем пользователя из базы данных
+                await usersRef.child(userId).remove();
+                
+                // Также удаляем сообщения этого пользователя
+                const messagesSnapshot = await messagesRef.orderByChild('userId').equalTo(userId).once('value');
+                const updates = {};
+                messagesSnapshot.forEach((childSnapshot) => {
+                    updates[childSnapshot.key] = null;
+                });
+                await messagesRef.update(updates);
+                
+            } catch (error) {
+                console.error('Ошибка удаления пользователя:', error);
+                alert('Ошибка при удалении пользователя');
+            }
         }
         
         // Удаление сообщения
-        function deleteMessage(messageId) {
-            let messages = JSON.parse(localStorage.getItem('chatMessages'));
-            messages = messages.filter(message => message.id !== messageId);
-            localStorage.setItem('chatMessages', JSON.stringify(messages));
-            
-            // Обновляем админ-панель
-            loadAdminData();
-        }
-        
-        // Автоматическое обновление сообщений каждые 2 секунды
-        setInterval(() => {
-            if (currentUserData) {
-                loadMessages();
+        async function deleteMessage(messageId) {
+            try {
+                await messagesRef.child(messageId).remove();
+            } catch (error) {
+                console.error('Ошибка удаления сообщения:', error);
+                alert('Ошибка при удалении сообщения');
             }
-        }, 2000);
+        }
     </script>
 </body>
 </html>
