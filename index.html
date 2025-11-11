@@ -1010,7 +1010,7 @@
             
             <div class="tab-content" id="admin-chat-tab">
                 <div class="container">
-                    <h3>Отправка системных уведомлений</h3>
+                    <h3>Отправка системных уведомления</h3>
                     <div class="form-group">
                         <select id="admin-message-type">
                             <option value="info">Информационное сообщение</option>
@@ -1656,6 +1656,102 @@
             }
         }
 
+        // Упрощенный API Mock для имитации серверных запросов
+        class ApiMock {
+            constructor() {
+                this.baseDelay = 300;
+            }
+
+            async delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            async login(username, password) {
+                await this.delay(this.baseDelay);
+                
+                if (!window.chatApp || !window.chatApp.userManager) {
+                    throw new Error('Application not initialized');
+                }
+                
+                const result = window.chatApp.userManager.login(username, password);
+                return result;
+            }
+
+            async register(username, email, password) {
+                await this.delay(this.baseDelay);
+                
+                if (!window.chatApp || !window.chatApp.userManager) {
+                    throw new Error('Application not initialized');
+                }
+                
+                const result = window.chatApp.userManager.register(username, email, password);
+                return result;
+            }
+
+            async getMessages() {
+                await this.delay(this.baseDelay);
+                
+                if (!window.chatApp || !window.chatApp.messageManager) {
+                    throw new Error('Application not initialized');
+                }
+                
+                return {
+                    success: true,
+                    messages: window.chatApp.messageManager.getAllMessages()
+                };
+            }
+
+            async sendMessage(messageData) {
+                await this.delay(this.baseDelay);
+                
+                if (!window.chatApp || !window.chatApp.messageManager) {
+                    throw new Error('Application not initialized');
+                }
+                
+                const message = window.chatApp.messageManager.addMessage(
+                    messageData.userId,
+                    messageData.username,
+                    messageData.content,
+                    messageData.isAdminMessage,
+                    messageData.messageType,
+                    messageData.imageData,
+                    messageData.isPremium
+                );
+                
+                return {
+                    success: true,
+                    message: message
+                };
+            }
+
+            async getOnlineUsers() {
+                await this.delay(this.baseDelay);
+                
+                if (!window.chatApp || !window.chatApp.userManager) {
+                    throw new Error('Application not initialized');
+                }
+                
+                return {
+                    success: true,
+                    users: window.chatApp.userManager.getOnlineUsers()
+                };
+            }
+
+            async adminLogin(password) {
+                await this.delay(this.baseDelay);
+                
+                if (!window.chatApp || !window.chatApp.userManager) {
+                    throw new Error('Application not initialized');
+                }
+                
+                const result = window.chatApp.userManager.adminLogin(password);
+                return result;
+            }
+        }
+
+        // Создаем глобальный экземпляр API
+        window.apiMock = new ApiMock();
+
         // Класс приложения
         class ChatApp {
             constructor() {
@@ -1881,7 +1977,7 @@
             }
             
             // Обработка входа
-            handleLogin() {
+            async handleLogin() {
                 const username = document.getElementById('login-username').value;
                 const password = document.getElementById('login-password').value;
                 const errorElement = document.getElementById('login-error');
@@ -1892,12 +1988,19 @@
                     return;
                 }
                 
-                const result = this.userManager.login(username, password);
-                
-                if (result.success) {
-                    this.showChat();
-                } else {
-                    errorElement.textContent = result.message;
+                try {
+                    const result = await window.apiMock.login(username, password);
+                    
+                    if (result.success) {
+                        this.userManager.currentUser = result.user;
+                        localStorage.setItem('currentUser', JSON.stringify(result.user));
+                        this.showChat();
+                    } else {
+                        errorElement.textContent = result.message;
+                        errorElement.classList.remove('hidden');
+                    }
+                } catch (error) {
+                    errorElement.textContent = 'Ошибка соединения с сервером';
                     errorElement.classList.remove('hidden');
                 }
             }
@@ -1929,7 +2032,7 @@
             }
             
             // Обработка регистрации
-            handleRegister() {
+            async handleRegister() {
                 const username = document.getElementById('register-username').value;
                 const email = document.getElementById('register-email').value;
                 const password = document.getElementById('register-password').value;
@@ -1955,31 +2058,35 @@
                     return;
                 }
                 
-                // Регистрация пользователя
-                const result = this.userManager.register(username, email, password);
-                
-                if (result.success) {
-                    successElement.textContent = 'Регистрация прошла успешно! Теперь вы можете войти.';
-                    successElement.classList.remove('hidden');
+                try {
+                    const result = await window.apiMock.register(username, email, password);
                     
-                    // Очистка формы
-                    document.getElementById('register-username').value = '';
-                    document.getElementById('register-email').value = '';
-                    document.getElementById('register-password').value = '';
-                    document.getElementById('register-confirm-password').value = '';
-                    
-                    // Возврат к экрану входа через 2 секунды
-                    setTimeout(() => {
-                        this.showScreen('login-form');
-                    }, 2000);
-                } else {
-                    errorElement.textContent = result.message;
+                    if (result.success) {
+                        successElement.textContent = 'Регистрация прошла успешно! Теперь вы можете войти.';
+                        successElement.classList.remove('hidden');
+                        
+                        // Очистка формы
+                        document.getElementById('register-username').value = '';
+                        document.getElementById('register-email').value = '';
+                        document.getElementById('register-password').value = '';
+                        document.getElementById('register-confirm-password').value = '';
+                        
+                        // Возврат к экрану входа через 2 секунды
+                        setTimeout(() => {
+                            this.showScreen('login-form');
+                        }, 2000);
+                    } else {
+                        errorElement.textContent = result.message;
+                        errorElement.classList.remove('hidden');
+                    }
+                } catch (error) {
+                    errorElement.textContent = 'Ошибка соединения с сервером';
                     errorElement.classList.remove('hidden');
                 }
             }
             
             // Обработка входа администратора
-            handleAdminLogin() {
+            async handleAdminLogin() {
                 const password = document.getElementById('admin-password').value;
                 const errorElement = document.getElementById('admin-login-error');
                 
@@ -1989,12 +2096,19 @@
                     return;
                 }
                 
-                const result = this.userManager.adminLogin(password);
-                
-                if (result.success) {
-                    this.showAdminPanel();
-                } else {
-                    errorElement.textContent = result.message;
+                try {
+                    const result = await window.apiMock.adminLogin(password);
+                    
+                    if (result.success) {
+                        this.userManager.currentUser = result.user;
+                        localStorage.setItem('currentUser', JSON.stringify(result.user));
+                        this.showAdminPanel();
+                    } else {
+                        errorElement.textContent = result.message;
+                        errorElement.classList.remove('hidden');
+                    }
+                } catch (error) {
+                    errorElement.textContent = 'Ошибка соединения с сервером';
                     errorElement.classList.remove('hidden');
                 }
             }
@@ -2024,19 +2138,25 @@
             }
             
             // Загрузка сообщений в чат
-            loadMessages() {
-                const messagesContainer = document.getElementById('chat-messages');
-                const messages = this.messageManager.getAllMessages();
-                
-                messagesContainer.innerHTML = '';
-                
-                messages.forEach(message => {
-                    const messageElement = this.createMessageElement(message, false);
-                    messagesContainer.appendChild(messageElement);
-                });
-                
-                // Прокрутка к последнему сообщению
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            async loadMessages() {
+                try {
+                    const result = await window.apiMock.getMessages();
+                    
+                    if (result.success) {
+                        const messagesContainer = document.getElementById('chat-messages');
+                        messagesContainer.innerHTML = '';
+                        
+                        result.messages.forEach(message => {
+                            const messageElement = this.createMessageElement(message, false);
+                            messagesContainer.appendChild(messageElement);
+                        });
+                        
+                        // Прокрутка к последнему сообщению
+                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    }
+                } catch (error) {
+                    console.error('Ошибка загрузки сообщений:', error);
+                }
             }
             
             // Создание элемента сообщения
@@ -2142,27 +2262,33 @@
             }
             
             // Загрузка онлайн пользователей
-            loadOnlineUsers() {
-                const usersContainer = document.getElementById('online-users');
-                const allUsers = this.userManager.getAllUsers();
-                
-                usersContainer.innerHTML = '';
-                
-                allUsers.forEach(user => {
-                    if (user.id === this.userManager.currentUser?.id) return;
+            async loadOnlineUsers() {
+                try {
+                    const result = await window.apiMock.getOnlineUsers();
                     
-                    const userElement = document.createElement('li');
-                    const indicator = user.isOnline ? 'online-indicator' : 'offline-indicator';
-                    const status = user.isOnline ? 'Онлайн' : 'Оффлайн';
-                    const premiumBadge = user.isPremium ? ' <span class="premium-badge">PREMIUM 👑</span>' : '';
-                    
-                    userElement.innerHTML = `
-                        <span><span class="${indicator}"></span>${user.username} (${status})${premiumBadge}</span>
-                        ${user.isAdmin ? '<span class="admin-badge">Админ</span>' : ''}
-                        ${user.isBanned ? '<span class="banned-badge">Заблокирован</span>' : ''}
-                    `;
-                    usersContainer.appendChild(userElement);
-                });
+                    if (result.success) {
+                        const usersContainer = document.getElementById('online-users');
+                        usersContainer.innerHTML = '';
+                        
+                        result.users.forEach(user => {
+                            if (user.id === this.userManager.currentUser?.id) return;
+                            
+                            const userElement = document.createElement('li');
+                            const indicator = user.isOnline ? 'online-indicator' : 'offline-indicator';
+                            const status = user.isOnline ? 'Онлайн' : 'Оффлайн';
+                            const premiumBadge = user.isPremium ? ' <span class="premium-badge">PREMIUM 👑</span>' : '';
+                            
+                            userElement.innerHTML = `
+                                <span><span class="${indicator}"></span>${user.username} (${status})${premiumBadge}</span>
+                                ${user.isAdmin ? '<span class="admin-badge">Админ</span>' : ''}
+                                ${user.isBanned ? '<span class="banned-badge">Заблокирован</span>' : ''}
+                            `;
+                            usersContainer.appendChild(userElement);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Ошибка загрузки пользователей:', error);
+                }
             }
             
             // Загрузка получателей для личных сообщений
@@ -2262,41 +2388,51 @@
             }
             
             // Отправка сообщения
-            sendMessage() {
+            async sendMessage() {
                 const messageInput = document.getElementById('message-input');
                 const content = messageInput.value.trim();
                 
                 if (!content) return;
                 
                 const user = this.userManager.currentUser;
-                this.messageManager.addMessage(
-                    user.id,
-                    user.username,
-                    content,
-                    false,
-                    'user',
-                    null,
-                    user.isPremium
-                );
                 
-                messageInput.value = '';
-                this.loadMessages();
+                try {
+                    await window.apiMock.sendMessage({
+                        userId: user.id,
+                        username: user.username,
+                        content: content,
+                        isAdminMessage: false,
+                        messageType: 'user',
+                        isPremium: user.isPremium
+                    });
+                    
+                    messageInput.value = '';
+                    this.loadMessages();
+                } catch (error) {
+                    console.error('Ошибка отправки сообщения:', error);
+                    alert('Ошибка отправки сообщения');
+                }
             }
             
             // Отправка стикера
-            sendSticker(sticker) {
+            async sendSticker(sticker) {
                 const user = this.userManager.currentUser;
-                this.messageManager.addMessage(
-                    user.id,
-                    user.username,
-                    sticker,
-                    false,
-                    'user',
-                    null,
-                    user.isPremium
-                );
                 
-                this.loadMessages();
+                try {
+                    await window.apiMock.sendMessage({
+                        userId: user.id,
+                        username: user.username,
+                        content: sticker,
+                        isAdminMessage: false,
+                        messageType: 'user',
+                        isPremium: user.isPremium
+                    });
+                    
+                    this.loadMessages();
+                } catch (error) {
+                    console.error('Ошибка отправки стикера:', error);
+                    alert('Ошибка отправки стикера');
+                }
             }
             
             // Отправка личного сообщения
@@ -2834,14 +2970,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             new ChatApp();
         });
-    // Инициализация приложения после загрузки DOM
-document.addEventListener('DOMContentLoaded', () => {
-    // Сначала инициализируем Service Worker
-    new ServiceWorkerMock();
-    
-    // Затем создаем основное приложение
-    new ChatApp();
-});
     </script>
 </body>
 </html>
